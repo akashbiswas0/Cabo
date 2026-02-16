@@ -10,6 +10,7 @@ type UploadSuccess = {
   cid?: string;
   trans_id: string;
   message: string;
+  price?: string;
 };
 
 const initialForm: UploadFormState = {
@@ -61,6 +62,7 @@ export default function UploadStrategyModal({ onClose }: Props) {
         cid: data.cid,
         trans_id: data.trans_id,
         message: data.message || "Strategy uploaded securely to NOVA.",
+        price: data.price,
       });
     } catch (err) {
       clearTimeout(timeoutId);
@@ -114,6 +116,12 @@ export default function UploadStrategyModal({ onClose }: Props) {
               <div>
                 <dt className="text-gray-500">IPFS CID</dt>
                 <dd className="font-mono text-white break-all">{success.cid}</dd>
+              </div>
+            )}
+            {success.price != null && success.price !== "" && (
+              <div>
+                <dt className="text-gray-500">Price (set by you)</dt>
+                <dd className="text-white font-medium">{success.price}</dd>
               </div>
             )}
             <div>

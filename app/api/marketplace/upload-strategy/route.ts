@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NovaSdk } from "nova-sdk-js";
+import { appendListing } from "@/lib/marketplace-listings";
 
 // Allow long-running upload (register_group + encrypt + IPFS + record on NEAR can take 60s+)
 export const maxDuration = 120;
@@ -90,12 +91,33 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await sdk.upload(groupId, buffer, file.name);
 
+    const priceDisplay =
+      priceType === "subscription"
+        ? `${price || "0"} NEAR/mo`
+        : `${price || "0"} NEAR`;
+
+    try {
+      await appendListing({
+        groupId,
+        name: name || "Unnamed",
+        description: description || "",
+        price: price || "0",
+        priceType: (priceType as "one-time" | "subscription") || "one-time",
+        seller: accountId,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn("Could not persist listing metadata:", e);
+    }
+
     return NextResponse.json({
       success: true,
       groupId,
       cid: result.cid,
       trans_id: result.trans_id,
       file_hash: result.file_hash,
+      price: priceDisplay,
+      priceInNear: price ? parseFloat(price) : undefined,
       message: "Strategy uploaded securely to NOVA. Buyers get encrypted access only.",
     });
   } catch (err) {

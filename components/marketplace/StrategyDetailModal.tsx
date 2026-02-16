@@ -71,6 +71,11 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
         </p>
         <p className="text-sm text-gray-500 mb-4">
           Price: <span className="text-white font-medium">{strategy.price}</span>
+          {strategy.id.startsWith("strategy.") && (
+            <span className="block text-xs text-gray-500 mt-0.5 font-serif italic">
+              Price set by creator
+            </span>
+          )}
         </p>
         {purchaseSuccess ? (
           <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex items-center gap-2 text-green-300 text-sm">

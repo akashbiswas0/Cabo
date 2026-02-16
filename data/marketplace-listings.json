@@ -1,0 +1,11 @@
+[
+  {
+    "groupId": "strategy.dca.1771267923284",
+    "name": "DCA",
+    "description": "Dollar-cost averaging strategy. Encrypted parameters; full details after purchase.",
+    "price": "0.01",
+    "priceType": "one-time",
+    "seller": "kasanova.nova-sdk.near",
+    "createdAt": "2025-02-17T00:00:00.000Z"
+  }
+]

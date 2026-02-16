@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { useNearWallet } from "near-connect-hooks";
 import {
@@ -14,12 +14,6 @@ import {
   filterStrategies,
 } from "@/components/marketplace";
 import type { TabId, Strategy, PriceTypeFilter } from "@/components/marketplace";
-
-function getStrategiesForTab(tab: TabId): Strategy[] {
-  if (tab === "discover") return [...MY_NOVA_LISTINGS, ...MOCK_STRATEGIES];
-  if (tab === "listings") return MY_NOVA_LISTINGS;
-  return MOCK_STRATEGIES.slice(1, 2);
-}
 
 /** 1 NEAR in yoctoNEAR (string) for wallet transfer. */
 function nearToYocto(near: number): string {
@@ -37,6 +31,22 @@ export default function MarketplacePage() {
   const [priceTypeFilter, setPriceTypeFilter] = useState<PriceTypeFilter>("all");
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [apiListings, setApiListings] = useState<Strategy[]>([]);
+
+  useEffect(() => {
+    fetch("/api/marketplace/listings")
+      .then((r) => r.json())
+      .then((data) => setApiListings(Array.isArray(data) ? data : []))
+      .catch(() => setApiListings([]));
+  }, [showUploadModal]);
+
+  const realListings = apiListings.length > 0 ? apiListings : MY_NOVA_LISTINGS;
+
+  function getStrategiesForTab(tab: TabId): Strategy[] {
+    if (tab === "discover") return [...realListings, ...MOCK_STRATEGIES];
+    if (tab === "listings") return realListings;
+    return MOCK_STRATEGIES.slice(1, 2);
+  }
 
   const handlePurchase = async (strategy: Strategy) => {
     if (!signedAccountId || strategy.priceInNear == null || strategy.priceInNear <= 0) {
@@ -59,7 +69,10 @@ export default function MarketplacePage() {
     if (!res.ok) throw new Error(data.detail || data.error || "Purchase failed");
   };
 
-  const strategies = useMemo(() => getStrategiesForTab(activeTab), [activeTab]);
+  const strategies = useMemo(
+    () => getStrategiesForTab(activeTab),
+    [activeTab, realListings]
+  );
   const filteredStrategies = useMemo(
     () =>
       filterStrategies(strategies, {
