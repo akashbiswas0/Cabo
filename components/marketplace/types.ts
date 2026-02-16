@@ -11,6 +11,8 @@ export type Strategy = {
   riskLevel: "low" | "medium" | "high";
   assetFocus: string[];
   seller: string;
+  /** NEAR amount for purchase (enables Buy with NEAR). Optional for mocks. */
+  priceInNear?: number;
 };
 
 export type PriceTypeFilter = "all" | "one-time" | "subscription";

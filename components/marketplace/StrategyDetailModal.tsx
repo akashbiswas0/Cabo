@@ -1,4 +1,6 @@
-import { X, Star, Wallet } from "lucide-react";
+"use client";
+import { useState } from "react";
+import { X, Star, Wallet, Loader2, CheckCircle2 } from "lucide-react";
 import type { Strategy } from "./types";
 
 type Props = {
@@ -6,9 +8,29 @@ type Props = {
   onClose: () => void;
   isConnected: boolean;
   onConnect: () => void;
+  onPurchase?: (strategy: Strategy) => Promise<void>;
 };
 
-export default function StrategyDetailModal({ strategy, onClose, isConnected, onConnect }: Props) {
+export default function StrategyDetailModal({ strategy, onClose, isConnected, onConnect, onPurchase }: Props) {
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+
+  const canPurchase = strategy.priceInNear != null && strategy.priceInNear > 0 && strategy.id.startsWith("strategy.");
+  const handleBuy = async () => {
+    if (!canPurchase || !onPurchase) return;
+    setPurchaseError(null);
+    setPurchasing(true);
+    try {
+      await onPurchase(strategy);
+      setPurchaseSuccess(true);
+    } catch (e) {
+      setPurchaseError(e instanceof Error ? e.message : "Purchase failed");
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
@@ -50,23 +72,46 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
         <p className="text-sm text-gray-500 mb-4">
           Price: <span className="text-white font-medium">{strategy.price}</span>
         </p>
-        {isConnected ? (
-          <button
-            type="button"
-            className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-5 h-5" />
-            Buy with NEAR
-          </button>
+        {purchaseSuccess ? (
+          <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex items-center gap-2 text-green-300 text-sm">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            Purchase complete. You now have secure access to this strategy.
+          </div>
         ) : (
-          <button
-            type="button"
-            onClick={onConnect}
-            className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-          >
-            <Wallet className="w-5 h-5" />
-            Connect wallet to buy
-          </button>
+          <>
+            {purchaseError && (
+              <p className="text-sm text-red-400 mb-3">{purchaseError}</p>
+            )}
+            {isConnected ? (
+              <button
+                type="button"
+                disabled={!canPurchase || purchasing}
+                onClick={handleBuy}
+                className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {purchasing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing…
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-5 h-5" />
+                    {canPurchase ? `Buy with NEAR (${strategy.price})` : "Buy with NEAR"}
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onConnect}
+                className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
+              >
+                <Wallet className="w-5 h-5" />
+                Connect wallet to buy
+              </button>
+            )}
+          </>
         )}
         <p className="text-xs text-gray-500 mt-3 text-center font-serif italic">
           NEAR payment → NOVA secure access grant

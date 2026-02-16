@@ -21,8 +21,13 @@ function getStrategiesForTab(tab: TabId): Strategy[] {
   return MOCK_STRATEGIES.slice(1, 2);
 }
 
+/** 1 NEAR in yoctoNEAR (string) for wallet transfer. */
+function nearToYocto(near: number): string {
+  return (BigInt(Math.floor(near * 1e24))).toString();
+}
+
 export default function MarketplacePage() {
-  const { signedAccountId, signIn } = useNearWallet();
+  const { signedAccountId, signIn, transfer } = useNearWallet();
   const [activeTab, setActiveTab] = useState<TabId>("discover");
   const [searchQuery, setSearchQuery] = useState("");
   const [priceMin, setPriceMin] = useState("");
@@ -32,6 +37,27 @@ export default function MarketplacePage() {
   const [priceTypeFilter, setPriceTypeFilter] = useState<PriceTypeFilter>("all");
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const handlePurchase = async (strategy: Strategy) => {
+    if (!signedAccountId || strategy.priceInNear == null || strategy.priceInNear <= 0) {
+      throw new Error("Cannot complete purchase");
+    }
+    const amountYocto = nearToYocto(strategy.priceInNear);
+    await transfer({
+      receiverId: strategy.seller,
+      amount: amountYocto,
+    });
+    const res = await fetch("/api/marketplace/purchase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        groupId: strategy.id,
+        buyerAccountId: signedAccountId,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || data.error || "Purchase failed");
+  };
 
   const strategies = useMemo(() => getStrategiesForTab(activeTab), [activeTab]);
   const filteredStrategies = useMemo(
@@ -118,6 +144,7 @@ export default function MarketplacePage() {
           onClose={() => setSelectedStrategy(null)}
           isConnected={!!signedAccountId}
           onConnect={() => signIn()}
+          onPurchase={handlePurchase}
         />
       )}
 

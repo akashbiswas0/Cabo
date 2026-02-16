@@ -7,12 +7,13 @@ export const MY_NOVA_LISTINGS: Strategy[] = [
     name: "DCA",
     teaser: "Dollar-cost averaging strategy. Encrypted parameters; full details after purchase.",
     avgMonthlyReturn: "—",
-    price: "Price set at listing",
+    price: "25 NEAR",
     priceType: "one-time",
     rating: null,
     riskLevel: "medium",
     assetFocus: ["NEAR"],
     seller: "kasanova.nova-sdk.near",
+    priceInNear: 25,
   },
 ];
 
