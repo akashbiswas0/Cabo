@@ -13,6 +13,7 @@
     "lucide-react": "^0.564.0",
     "near-connect-hooks": "^1.0.3",
     "next": "16.1.6",
+    "nova-sdk-js": "^1.0.3",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
