@@ -1,13 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { readListings } from "@/lib/marketplace-listings";
 
 /**
  * GET /api/marketplace/listings
- * Returns NOVA listings with metadata (including price set by the creator).
+ * Returns NOVA listings. Use ?mine=1 to return only listings by this app's NOVA account (my listings).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const stored = await readListings();
+    const { searchParams } = new URL(request.url);
+    const mine = searchParams.get("mine") === "1";
+    const seller = mine ? process.env.NOVA_ACCOUNT_ID : undefined;
+    const stored = await readListings(seller);
     const strategies = stored.map((row) => {
       const priceNum = parseFloat(row.price) || 0;
       const priceDisplay =
@@ -26,6 +29,7 @@ export async function GET() {
         assetFocus: ["NEAR"] as string[],
         seller: row.seller,
         priceInNear: priceNum,
+        cid: row.cid,
       };
     });
     return NextResponse.json(strategies);

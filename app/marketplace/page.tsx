@@ -9,8 +9,6 @@ import {
   StrategyCard,
   StrategyDetailModal,
   UploadStrategyModal,
-  MOCK_STRATEGIES,
-  MY_NOVA_LISTINGS,
   filterStrategies,
 } from "@/components/marketplace";
 import type { TabId, Strategy, PriceTypeFilter } from "@/components/marketplace";
@@ -32,6 +30,8 @@ export default function MarketplacePage() {
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [apiListings, setApiListings] = useState<Strategy[]>([]);
+  const [myListings, setMyListings] = useState<Strategy[]>([]);
+  const [apiPurchases, setApiPurchases] = useState<Strategy[]>([]);
 
   useEffect(() => {
     fetch("/api/marketplace/listings")
@@ -40,17 +40,42 @@ export default function MarketplacePage() {
       .catch(() => setApiListings([]));
   }, [showUploadModal]);
 
-  const realListings = apiListings.length > 0 ? apiListings : MY_NOVA_LISTINGS;
+  useEffect(() => {
+    fetch("/api/marketplace/listings?mine=1")
+      .then((r) => r.json())
+      .then((data) => setMyListings(Array.isArray(data) ? data : []))
+      .catch(() => setMyListings([]));
+  }, [showUploadModal]);
+
+  useEffect(() => {
+    if (!signedAccountId) {
+      setApiPurchases([]);
+      return;
+    }
+    fetch(`/api/marketplace/purchases?accountId=${encodeURIComponent(signedAccountId)}`)
+      .then((r) => r.json())
+      .then((data) => setApiPurchases(Array.isArray(data) ? data : []))
+      .catch(() => setApiPurchases([]));
+  }, [signedAccountId]);
+
+  const purchasedGroupIds = useMemo(
+    () => new Set(apiPurchases.map((s) => s.id)),
+    [apiPurchases]
+  );
 
   function getStrategiesForTab(tab: TabId): Strategy[] {
-    if (tab === "discover") return [...realListings, ...MOCK_STRATEGIES];
-    if (tab === "listings") return realListings;
-    return MOCK_STRATEGIES.slice(1, 2);
+    if (tab === "discover") return apiListings;
+    if (tab === "listings") return myListings;
+    if (tab === "purchases") return apiPurchases;
+    return [];
   }
 
   const handlePurchase = async (strategy: Strategy) => {
     if (!signedAccountId || strategy.priceInNear == null || strategy.priceInNear <= 0) {
       throw new Error("Cannot complete purchase");
+    }
+    if (purchasedGroupIds.has(strategy.id)) {
+      throw new Error("You have already purchased this strategy.");
     }
     const amountYocto = nearToYocto(strategy.priceInNear);
     await transfer({
@@ -67,11 +92,12 @@ export default function MarketplacePage() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || data.error || "Purchase failed");
+    setApiPurchases((prev) => [strategy, ...prev]);
   };
 
   const strategies = useMemo(
     () => getStrategiesForTab(activeTab),
-    [activeTab, realListings]
+    [activeTab, apiListings, myListings, apiPurchases]
   );
   const filteredStrategies = useMemo(
     () =>
@@ -146,7 +172,13 @@ export default function MarketplacePage() {
 
         {filteredStrategies.length === 0 && (
           <p className="text-gray-500 text-center py-12 font-serif italic text-sm">
-            No strategies match your filters.
+            {activeTab === "purchases"
+              ? signedAccountId
+                ? "You haven't purchased any strategies yet."
+                : "Connect your wallet to see your purchases."
+              : activeTab === "listings"
+                ? "You haven't listed any strategies yet."
+                : "No strategies match your filters."}
           </p>
         )}
       </main>
@@ -158,6 +190,7 @@ export default function MarketplacePage() {
           isConnected={!!signedAccountId}
           onConnect={() => signIn()}
           onPurchase={handlePurchase}
+          alreadyPurchased={purchasedGroupIds.has(selectedStrategy.id)}
         />
       )}
 

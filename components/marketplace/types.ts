@@ -13,6 +13,8 @@ export type Strategy = {
   seller: string;
   /** NEAR amount for purchase (enables Buy with NEAR). Optional for mocks. */
   priceInNear?: number;
+  /** IPFS CID of the encrypted strategy file (from NOVA). Shown in detail, used for retrieve. */
+  cid?: string;
 };
 
 export type PriceTypeFilter = "all" | "one-time" | "subscription";
