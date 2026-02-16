@@ -48,6 +48,29 @@ function getBodyErrorMessage(body: unknown): ApiErrorPayload | null {
   return { message, correlationId };
 }
 
+function isLikelyNearAccountId(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized.endsWith(".near") || normalized.endsWith(".tg")) {
+    return true;
+  }
+  return /^[a-f0-9]{64}$/.test(normalized);
+}
+
+function resolveRecipientType(input: QuoteRequestInput): QuoteRequest.recipientType {
+  const destinationBlockchain = (input.destinationBlockchain || "").toLowerCase();
+  const nearRecipient = isLikelyNearAccountId(input.recipient);
+
+  // For non-NEAR destination chains, a NEAR account should be routed through Intents.
+  if (destinationBlockchain && destinationBlockchain !== "near" && nearRecipient) {
+    return QuoteRequest.recipientType.INTENTS;
+  }
+
+  return QuoteRequest.recipientType.DESTINATION_CHAIN;
+}
+
 export function toApiError(error: unknown): ErrorResult {
   if (error instanceof ApiError) {
     const bodyError = getBodyErrorMessage(error.body);
@@ -83,13 +106,20 @@ export function toApiError(error: unknown): ErrorResult {
 export async function getIntentsTokens(): Promise<IntentsToken[]> {
   configureOneClickApi();
   const tokens = await OneClickService.getTokens();
-  return tokens as IntentsToken[];
+  return (tokens as IntentsToken[]).filter((token) => token.blockchain === "near");
 }
 
 export async function getIntentsQuote(
   input: QuoteRequestInput,
 ): Promise<QuoteResponsePayload> {
   configureOneClickApi();
+
+  if (
+    input.destinationBlockchain &&
+    input.destinationBlockchain.toLowerCase() !== "near"
+  ) {
+    throw new Error("Only NEAR destination assets are supported right now.");
+  }
 
   const recipient = input.recipient.trim();
   const refundTo = (input.refundTo || input.recipient).trim();
@@ -110,7 +140,7 @@ export async function getIntentsQuote(
     refundTo,
     refundType: QuoteRequest.refundType.ORIGIN_CHAIN,
     recipient,
-    recipientType: QuoteRequest.recipientType.DESTINATION_CHAIN,
+    recipientType: resolveRecipientType(input),
     deadline: new Date(Date.now() + 3 * 60 * 1000).toISOString(),
     referral: process.env.ONE_CLICK_REFERRAL || DEFAULT_REFERRAL,
     quoteWaitingTimeMs: 3000,

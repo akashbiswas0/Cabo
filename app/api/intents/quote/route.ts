@@ -32,6 +32,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "recipient is required" }, { status: 400 });
     }
 
+    if (
+      typeof body.destinationBlockchain === "string" &&
+      body.destinationBlockchain.trim().toLowerCase() !== "near"
+    ) {
+      return NextResponse.json(
+        { message: "Only NEAR destination assets are supported right now." },
+        { status: 400 },
+      );
+    }
+
     if (typeof body.amount !== "string" || !isValidAmount(body.amount)) {
       return NextResponse.json(
         { message: "amount must be a positive integer string" },

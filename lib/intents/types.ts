@@ -11,6 +11,7 @@ export type IntentsToken = {
 export type QuoteRequestInput = {
   dry: boolean;
   destinationAsset: string;
+  destinationBlockchain?: string;
   amount: string;
   recipient: string;
   refundTo?: string;

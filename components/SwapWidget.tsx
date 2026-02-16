@@ -50,6 +50,17 @@ function getErrorMessage(error: unknown): string {
   return "Unexpected error";
 }
 
+function isLikelyNearRecipient(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized.endsWith(".near") || normalized.endsWith(".tg")) {
+    return true;
+  }
+  return /^[a-f0-9]{64}$/.test(normalized);
+}
+
 function extractTxHash(result: unknown): string | null {
   if (!result || typeof result !== "object") {
     return null;
@@ -193,7 +204,8 @@ const SwapCard: React.FC = () => {
     setTokensError(null);
     try {
       const tokens = await fetchIntentsTokens();
-      const sorted = [...tokens].sort((a, b) => {
+      const nearTokens = tokens.filter((token) => token.blockchain === "near");
+      const sorted = [...nearTokens].sort((a, b) => {
         if (a.blockchain === b.blockchain) {
           return a.symbol.localeCompare(b.symbol);
         }
@@ -260,6 +272,10 @@ const SwapCard: React.FC = () => {
     [destinationAsset, tokenOptions],
   );
 
+  const recipientRouteMode = useMemo(() => {
+    return "DESTINATION_CHAIN";
+  }, []);
+
   const amountYocto = useMemo(
     () => decimalToUnits(sellAmountInput, NEAR_DECIMALS),
     [sellAmountInput],
@@ -279,6 +295,9 @@ const SwapCard: React.FC = () => {
     }
     if (!recipient.trim()) {
       return "Recipient is required.";
+    }
+    if (!isLikelyNearRecipient(recipient)) {
+      return "Recipient must be a valid NEAR account for NEAR assets.";
     }
     if (!sellAmountInput.trim()) {
       return "Enter amount to swap.";
@@ -315,6 +334,7 @@ const SwapCard: React.FC = () => {
           {
             dry: true,
             destinationAsset: selectedDestinationToken.assetId,
+            destinationBlockchain: selectedDestinationToken.blockchain,
             amount: amountYocto,
             recipient: recipient.trim(),
             refundTo: signedAccountId,
@@ -422,6 +442,7 @@ const SwapCard: React.FC = () => {
       const executableQuote = await fetchIntentsQuote({
         dry: false,
         destinationAsset: selectedDestinationToken.assetId,
+        destinationBlockchain: selectedDestinationToken.blockchain,
         amount: amountYocto,
         recipient: recipient.trim(),
         refundTo: signedAccountId,
@@ -586,7 +607,7 @@ const SwapCard: React.FC = () => {
             <div className="flex justify-between items-start mb-3">
               <span className="text-gray-400 text-sm font-medium">You Buy</span>
               <span className="text-gray-500 text-xs">
-                Destination: {selectedDestinationToken?.blockchain.toUpperCase() || "N/A"}
+                Destination: NEAR
               </span>
             </div>
 
@@ -633,9 +654,14 @@ const SwapCard: React.FC = () => {
             type="text"
             value={recipient}
             onChange={(event) => setRecipient(event.target.value)}
-            placeholder="Enter destination recipient"
+            placeholder={
+              "Enter NEAR account (e.g. alice.near)"
+            }
             className="w-full rounded-xl bg-[#2C2D35] border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
           />
+          <p className="mt-2 text-xs text-gray-500">
+            Route mode: {recipientRouteMode} (NEAR assets only)
+          </p>
         </div>
 
         <div className="bg-[#1E1F25] rounded-xl p-4 flex items-center justify-between border border-white/5">
