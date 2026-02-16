@@ -1,5 +1,21 @@
 import type { Strategy } from "./types";
 
+/** Your real NOVA listing (group created on-chain). Shown in Listings tab. */
+export const MY_NOVA_LISTINGS: Strategy[] = [
+  {
+    id: "strategy.dca.1771267923284",
+    name: "DCA",
+    teaser: "Dollar-cost averaging strategy. Encrypted parameters; full details after purchase.",
+    avgMonthlyReturn: "—",
+    price: "Price set at listing",
+    priceType: "one-time",
+    rating: null,
+    riskLevel: "medium",
+    assetFocus: ["NEAR"],
+    seller: "kasanova.nova-sdk.near",
+  },
+];
+
 export const MOCK_STRATEGIES: Strategy[] = [
   {
     id: "1",

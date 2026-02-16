@@ -10,13 +10,14 @@ import {
   StrategyDetailModal,
   UploadStrategyModal,
   MOCK_STRATEGIES,
+  MY_NOVA_LISTINGS,
   filterStrategies,
 } from "@/components/marketplace";
 import type { TabId, Strategy, PriceTypeFilter } from "@/components/marketplace";
 
 function getStrategiesForTab(tab: TabId): Strategy[] {
-  if (tab === "discover") return MOCK_STRATEGIES;
-  if (tab === "listings") return MOCK_STRATEGIES.slice(0, 1);
+  if (tab === "discover") return [...MY_NOVA_LISTINGS, ...MOCK_STRATEGIES];
+  if (tab === "listings") return MY_NOVA_LISTINGS;
   return MOCK_STRATEGIES.slice(1, 2);
 }
 
