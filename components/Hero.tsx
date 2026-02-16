@@ -1,7 +1,12 @@
-import React from 'react';
-import { Star } from 'lucide-react';
+"use client";
+import React from "react";
+import Link from "next/link";
+import { useNearWallet } from "near-connect-hooks";
 
 const Hero: React.FC = () => {
+  const { signedAccountId, loading } = useNearWallet();
+  const showDashboardButton = !loading && Boolean(signedAccountId);
+
   return (
     <div className="flex flex-col items-center text-center max-w-4xl mx-auto mt-10 md:mt-0">
       
@@ -20,9 +25,14 @@ const Hero: React.FC = () => {
 
       {/* CTA Section */}
       <div className="flex flex-col items-center gap-4">
-        {/* Main Button */}
-      
-
+        {showDashboardButton && (
+          <Link
+            href="/dashboard"
+            className="px-6 py-3 text-sm md:text-base font-medium border border-white/20 rounded-full bg-white text-black hover:bg-transparent hover:text-white transition-all duration-300"
+          >
+            Go to Dashboard
+          </Link>
+        )}
       </div>
     </div>
   );

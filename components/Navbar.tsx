@@ -1,16 +1,48 @@
 "use client";
-import React from 'react';
-import { useNearWallet } from 'near-connect-hooks';
+import React from "react";
+import { useNearWallet } from "near-connect-hooks";
 
 const Navbar: React.FC = () => {
+  const [showDisconnectMenu, setShowDisconnectMenu] = React.useState(false);
+  const walletMenuRef = React.useRef<HTMLDivElement | null>(null);
   const { signedAccountId, loading, signIn, signOut } = useNearWallet();
 
-  const handleAction = () => {
+  React.useEffect(() => {
+    if (!signedAccountId) {
+      setShowDisconnectMenu(false);
+    }
+  }, [signedAccountId]);
+
+  React.useEffect(() => {
+    if (!showDisconnectMenu) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        walletMenuRef.current &&
+        !walletMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowDisconnectMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDisconnectMenu]);
+
+  const handleWalletClick = () => {
+    if (loading) return;
     if (signedAccountId) {
-      signOut();
+      setShowDisconnectMenu((prev) => !prev);
     } else {
       signIn();
     }
+  };
+
+  const handleDisconnect = async () => {
+    await signOut();
+    setShowDisconnectMenu(false);
   };
 
   const walletLabel = signedAccountId
@@ -29,12 +61,12 @@ const Navbar: React.FC = () => {
           </span>
         </div>
 
-        {/* Right: connected wallet (replaces bell) / connect button */}
-        <div className="hidden md:block">
+        {/* Right: connect wallet / connected wallet menu */}
+        <div ref={walletMenuRef} className="relative">
           <button
-            onClick={handleAction}
-            className="px-6 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 flex items-center gap-2"
-            title={signedAccountId ? "Click to disconnect" : "Connect wallet"}
+            onClick={handleWalletClick}
+            className="hidden md:flex px-6 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 items-center gap-2"
+            title={signedAccountId ? "Wallet menu" : "Connect wallet"}
           >
             {loading ? (
               "Loading..."
@@ -44,29 +76,27 @@ const Navbar: React.FC = () => {
               "connect wallet"
             )}
           </button>
-        </div>
-
-        {/* Mobile: same, show wallet when connected */}
-        <div className="md:hidden">
           <button
-            onClick={handleAction}
-            className="px-4 py-2 text-xs font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
+            onClick={handleWalletClick}
+            className="md:hidden px-4 py-2 text-xs font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
           >
             {loading ? "..." : walletLabel ?? "connect"}
           </button>
+
+          {signedAccountId && showDisconnectMenu && (
+            <div className="absolute right-0 mt-2 min-w-[150px] rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl p-2 shadow-lg">
+              <button
+                onClick={handleDisconnect}
+                className="w-full text-left px-3 py-2 text-sm rounded-lg text-white hover:bg-white/10 transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
   );
 };
-
-const NavItem: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => (
-  <a 
-    href={href} 
-    className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200"
-  >
-    {children}
-  </a>
-);
 
 export default Navbar;
