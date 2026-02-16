@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import React from "react";
 import { useNearWallet } from "near-connect-hooks";
 
@@ -61,38 +62,49 @@ const Navbar: React.FC = () => {
           </span>
         </div>
 
-        {/* Right: connect wallet / connected wallet menu */}
-        <div ref={walletMenuRef} className="relative">
-          <button
-            onClick={handleWalletClick}
-            className="hidden md:flex px-6 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 items-center gap-2"
-            title={signedAccountId ? "Wallet menu" : "Connect wallet"}
-          >
-            {loading ? (
-              "Loading..."
-            ) : walletLabel ? (
-              <span className="font-mono">{walletLabel}</span>
-            ) : (
-              "connect wallet"
-            )}
-          </button>
-          <button
-            onClick={handleWalletClick}
-            className="md:hidden px-4 py-2 text-xs font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
-          >
-            {loading ? "..." : walletLabel ?? "connect"}
-          </button>
-
-          {signedAccountId && showDisconnectMenu && (
-            <div className="absolute right-0 mt-2 min-w-[150px] rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl p-2 shadow-lg">
-              <button
-                onClick={handleDisconnect}
-                className="w-full text-left px-3 py-2 text-sm rounded-lg text-white hover:bg-white/10 transition-colors"
-              >
-                Disconnect
-              </button>
-            </div>
+        {/* Right: dashboard (when connected) + wallet menu */}
+        <div className="flex items-center gap-2">
+          {signedAccountId && (
+            <Link
+              href="/dashboard"
+              className="px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
+            >
+              Dashboard
+            </Link>
           )}
+
+          <div ref={walletMenuRef} className="relative">
+            <button
+              onClick={handleWalletClick}
+              className="hidden md:flex px-6 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 items-center gap-2"
+              title={signedAccountId ? "Wallet menu" : "Connect wallet"}
+            >
+              {loading ? (
+                "Loading..."
+              ) : walletLabel ? (
+                <span className="font-mono">{walletLabel}</span>
+              ) : (
+                "connect wallet"
+              )}
+            </button>
+            <button
+              onClick={handleWalletClick}
+              className="md:hidden px-4 py-2 text-xs font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
+            >
+              {loading ? "..." : walletLabel ?? "connect"}
+            </button>
+
+            {signedAccountId && showDisconnectMenu && (
+              <div className="absolute right-0 mt-2 min-w-[150px] rounded-xl border border-white/10 bg-black/80 backdrop-blur-xl p-2 shadow-lg">
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full text-left px-3 py-2 text-sm rounded-lg text-white hover:bg-white/10 transition-colors"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>
