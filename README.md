@@ -17,9 +17,9 @@ Set the required env vars (see below) for NOVA, PingPay.
 
 ## Integrations
 
-### NOVA
+### NOVA - **[NOVA SDK Integration in Cabo](https://docs.google.com/document/d/1NpwHDtYyKjrLASo6PozgqfAt7Y9IgL9wqTrerXvrIXE/edit?usp=sharing)**
 
-**What it is:** [NOVA](https://nova-sdk.com) provides encrypted storage and access control on NEAR. Files are encrypted and stored off-chain (e.g. IPFS); on-chain groups define who can decrypt. See **[NOVA SDK Integration in Cabo](https://docs.google.com/document/d/1NpwHDtYyKjrLASo6PozgqfAt7Y9IgL9wqTrerXvrIXE/edit?usp=sharing)** for detailed integration docs.
+**What it is:** [NOVA](https://nova-sdk.com) provides encrypted storage and access control on NEAR. Files are encrypted and stored off-chain (e.g. IPFS); on-chain groups define who can decrypt.
 
 **Why we use it:** Strategies are sensitive. We use NOVA so that (1) only the seller and paying buyers can ever see the strategy content, and (2) access is enforced by the NOVA contract, not our backend.
 
