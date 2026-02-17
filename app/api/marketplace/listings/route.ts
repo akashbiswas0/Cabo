@@ -3,13 +3,16 @@ import { readListings } from "@/lib/marketplace-listings";
 
 /**
  * GET /api/marketplace/listings
- * Returns listings. Use ?mine=1&accountId=... to return only listings created by that NEAR account (My Listings).
+ * Listings are read from Supabase (table marketplace_listings), not from NOVA.
+ * Use ?mine=1&accountId=... to return only listings created by that NEAR account (My Listings).
+ * Use ?debug=1 to include _source and count in the response (for troubleshooting).
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const mine = searchParams.get("mine") === "1";
     const accountId = searchParams.get("accountId")?.trim();
+    const debug = searchParams.get("debug") === "1";
     const options =
       mine && accountId
         ? { listerAccountId: accountId }
@@ -38,6 +41,12 @@ export async function GET(request: NextRequest) {
         cid: row.cid,
       };
     });
+    if (debug) {
+      return NextResponse.json({
+        strategies,
+        _debug: { source: "supabase", table: "marketplace_listings", count: strategies.length },
+      });
+    }
     return NextResponse.json(strategies);
   } catch (e) {
     console.error("Listings read error:", e);

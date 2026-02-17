@@ -83,6 +83,12 @@ export async function readListings(options?: ReadListingsOptions): Promise<Store
   }
 }
 
+/** Get the most recently created listing (by created_at desc). */
+export async function getLatestListing(): Promise<StoredListing | null> {
+  const list = await readListings(undefined);
+  return list.length > 0 ? list[0] : null;
+}
+
 /** Get a single listing by group_id (e.g. to get cid for retrieve). */
 export async function getListingByGroupId(groupId: string): Promise<StoredListing | null> {
   if (!isSupabaseConfigured()) return null;

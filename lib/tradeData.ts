@@ -11,25 +11,6 @@ export type FtMetadata = {
   decimals: number;
 };
 
-export type TradeToken = {
-  id: string;
-  symbol: string;
-  name: string;
-  decimals: number;
-  balanceRaw: string;
-  balanceUi: number;
-  usdPrice: number | null;
-  isNative: boolean;
-};
-
-export type QuoteResult = {
-  buyAmount: string;
-  rateText: string;
-  sellUsdText: string;
-  buyUsdText: string;
-  hasQuote: boolean;
-};
-
 type ViewFunction = (params: {
   contractId: string;
   method: string;
@@ -170,46 +151,4 @@ export function toDisplayNumber(raw: string, decimals: number): number {
 export function mapSymbolToCoinGeckoId(symbol: string): string | null {
   const normalized = symbol.trim().toUpperCase();
   return COINGECKO_SYMBOL_MAP[normalized] ?? null;
-}
-
-export async function fetchUsdPrices(
-  coinIds: string[],
-): Promise<Record<string, number>> {
-  const uniqueCoinIds = Array.from(new Set(coinIds.filter(Boolean)));
-  if (uniqueCoinIds.length === 0) {
-    return {};
-  }
-
-  const url = new URL("https://api.coingecko.com/api/v3/simple/price");
-  url.searchParams.set("ids", uniqueCoinIds.join(","));
-  url.searchParams.set("vs_currencies", "usd");
-
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    throw new Error(`Failed to fetch token prices (${response.status})`);
-  }
-
-  const payload = (await response.json()) as Record<string, { usd?: unknown }>;
-  const prices: Record<string, number> = {};
-
-  for (const coinId of uniqueCoinIds) {
-    const maybePrice = payload?.[coinId]?.usd;
-    if (typeof maybePrice === "number" && Number.isFinite(maybePrice)) {
-      prices[coinId] = maybePrice;
-    }
-  }
-
-  return prices;
-}
-
-export function isLpToken(symbol: string, name: string): boolean {
-  const normalizedSymbol = symbol.trim().toUpperCase();
-  const normalizedName = name.trim().toLowerCase();
-
-  return (
-    normalizedSymbol.startsWith("LP-") ||
-    normalizedName.startsWith("lp token") ||
-    normalizedName.includes("liquidity pool") ||
-    normalizedName.includes("pool token")
-  );
 }
