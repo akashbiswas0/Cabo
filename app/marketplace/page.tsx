@@ -48,13 +48,19 @@ export default function MarketplacePage() {
   }, [showUploadModal]);
 
   useEffect(() => {
+    if (!signedAccountId) {
+      setMyListings([]);
+      setMyListingsLoading(false);
+      return;
+    }
     setMyListingsLoading(true);
-    fetch("/api/marketplace/listings?mine=1")
+    const params = new URLSearchParams({ mine: "1", accountId: signedAccountId });
+    fetch(`/api/marketplace/listings?${params.toString()}`)
       .then((r) => r.json())
       .then((data) => setMyListings(Array.isArray(data) ? data : []))
       .catch(() => setMyListings([]))
       .finally(() => setMyListingsLoading(false));
-  }, [showUploadModal]);
+  }, [signedAccountId, showUploadModal]);
 
   useEffect(() => {
     if (!signedAccountId) {
@@ -238,7 +244,10 @@ export default function MarketplacePage() {
       )}
 
       {showUploadModal && (
-        <UploadStrategyModal onClose={() => setShowUploadModal(false)} />
+        <UploadStrategyModal
+          onClose={() => setShowUploadModal(false)}
+          listerAccountId={signedAccountId}
+        />
       )}
 
       <footer className="border-t border-white/10 py-8 px-4 md:px-6 max-w-6xl mx-auto w-full mt-auto">

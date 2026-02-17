@@ -13,6 +13,7 @@ export type MarketplaceListingRow = {
   seller: string;
   created_at: string;
   cid: string | null;
+  lister_account_id: string | null;
 };
 
 export type PurchaseRow = {

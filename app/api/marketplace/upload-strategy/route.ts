@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
   const description = (formData.get("description") as string) || "";
   const price = (formData.get("price") as string) || "";
   const priceType = (formData.get("priceType") as string) || "one-time";
+  const listerAccountId = (formData.get("listerAccountId") as string)?.trim() || undefined;
 
   if (!file || file.size === 0) {
     return NextResponse.json(
@@ -106,6 +107,7 @@ export async function POST(request: NextRequest) {
         seller: accountId,
         createdAt: new Date().toISOString(),
         cid: result.cid,
+        listerAccountId,
       });
     } catch (e) {
       console.warn("Could not persist listing metadata:", e);

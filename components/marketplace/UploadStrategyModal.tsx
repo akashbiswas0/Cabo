@@ -3,7 +3,11 @@ import { useState } from "react";
 import { X, Lock, Upload, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
 import type { UploadFormState } from "./types";
 
-type Props = { onClose: () => void };
+type Props = {
+  onClose: () => void;
+  /** NEAR account of the user creating the listing (for "My Listings"). */
+  listerAccountId?: string | null;
+};
 
 type UploadSuccess = {
   groupId?: string;
@@ -23,7 +27,7 @@ const initialForm: UploadFormState = {
 
 const EXPLORER_TX_URL = "https://nearblocks.io/txns";
 
-export default function UploadStrategyModal({ onClose }: Props) {
+export default function UploadStrategyModal({ onClose, listerAccountId }: Props) {
   const [form, setForm] = useState<UploadFormState>(initialForm);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState<UploadSuccess | null>(null);
@@ -46,6 +50,7 @@ export default function UploadStrategyModal({ onClose }: Props) {
       fd.set("price", form.price);
       fd.set("priceType", form.priceType);
       fd.set("file", form.file);
+      if (listerAccountId) fd.set("listerAccountId", listerAccountId);
       const res = await fetch("/api/marketplace/upload-strategy", {
         method: "POST",
         body: fd,

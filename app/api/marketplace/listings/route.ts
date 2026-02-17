@@ -3,14 +3,20 @@ import { readListings } from "@/lib/marketplace-listings";
 
 /**
  * GET /api/marketplace/listings
- * Returns NOVA listings. Use ?mine=1 to return only listings by this app's NOVA account (my listings).
+ * Returns listings. Use ?mine=1&accountId=... to return only listings created by that NEAR account (My Listings).
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const mine = searchParams.get("mine") === "1";
-    const seller = mine ? process.env.NOVA_ACCOUNT_ID : undefined;
-    const stored = await readListings(seller);
+    const accountId = searchParams.get("accountId")?.trim();
+    const options =
+      mine && accountId
+        ? { listerAccountId: accountId }
+        : mine
+          ? undefined
+          : undefined;
+    const stored = mine && !accountId ? [] : await readListings(options);
     const strategies = stored.map((row) => {
       const priceNum = parseFloat(row.price) || 0;
       const priceDisplay =
