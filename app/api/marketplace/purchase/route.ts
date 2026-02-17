@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { NovaSdk } from "nova-sdk-js";
+import { checkIfPurchased, recordPurchase } from "@/lib/purchases";
 
 /**
  * Grant NOVA group access after purchase.
- * Caller (your app) uses NOVA_ACCOUNT_ID (group owner) to add the buyer as a member.
- * Frontend should send NEAR payment to the seller first, then call this to grant access.
+ * One purchase per user per strategy; records purchase in Supabase.
  */
 export async function POST(request: NextRequest) {
   const accountId = process.env.NOVA_ACCOUNT_ID;
@@ -32,6 +32,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const alreadyPurchased = await checkIfPurchased(buyerAccountId, groupId);
+  if (alreadyPurchased) {
+    return NextResponse.json(
+      { error: "Already purchased", detail: "You can only purchase this strategy once." },
+      { status: 409 }
+    );
+  }
+
   const config: { apiKey: string; rpcUrl: string; contractId: string; mcpUrl?: string } = {
     apiKey,
     rpcUrl: process.env.NOVA_RPC_URL ?? "https://rpc.mainnet.near.org",
@@ -42,6 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     const sdk = new NovaSdk(accountId, config);
     await sdk.addGroupMember(groupId, buyerAccountId);
+    await recordPurchase(buyerAccountId, groupId);
     return NextResponse.json({
       success: true,
       groupId,

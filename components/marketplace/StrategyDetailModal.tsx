@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { X, Star, Wallet, Loader2, CheckCircle2 } from "lucide-react";
+import { X, Star, Wallet, Loader2, CheckCircle2, FileJson } from "lucide-react";
 import type { Strategy } from "./types";
 
 type Props = {
@@ -9,14 +9,24 @@ type Props = {
   isConnected: boolean;
   onConnect: () => void;
   onPurchase?: (strategy: Strategy) => Promise<void>;
+  /** True if this user has already purchased this strategy (one purchase per user). */
+  alreadyPurchased?: boolean;
 };
 
-export default function StrategyDetailModal({ strategy, onClose, isConnected, onConnect, onPurchase }: Props) {
+export default function StrategyDetailModal({ strategy, onClose, isConnected, onConnect, onPurchase, alreadyPurchased }: Props) {
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [strategyModalOpen, setStrategyModalOpen] = useState(false);
+  const [strategyContent, setStrategyContent] = useState<string | null>(null);
+  const [strategyLoading, setStrategyLoading] = useState(false);
+  const [strategyError, setStrategyError] = useState<string | null>(null);
 
-  const canPurchase = strategy.priceInNear != null && strategy.priceInNear > 0 && strategy.id.startsWith("strategy.");
+  const canPurchase =
+    !alreadyPurchased &&
+    strategy.priceInNear != null &&
+    strategy.priceInNear > 0 &&
+    strategy.id.startsWith("strategy.");
   const handleBuy = async () => {
     if (!canPurchase || !onPurchase) return;
     setPurchaseError(null);
@@ -30,6 +40,41 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
       setPurchasing(false);
     }
   };
+
+  const handleViewStrategy = async () => {
+    if (!strategy.cid) return;
+    setStrategyModalOpen(true);
+    setStrategyContent(null);
+    setStrategyError(null);
+    setStrategyLoading(true);
+    try {
+      const res = await fetch(
+        `/api/marketplace/retrieve?groupId=${encodeURIComponent(strategy.id)}&cid=${encodeURIComponent(strategy.cid)}`
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setStrategyError(data.detail || data.error || "Failed to load strategy");
+        return;
+      }
+      const text = data.data_text ?? (data.data_base64 ? atob(data.data_base64) : null);
+      if (text) {
+        try {
+          const parsed = JSON.parse(text);
+          setStrategyContent(JSON.stringify(parsed, null, 2));
+        } catch {
+          setStrategyContent(text);
+        }
+      } else {
+        setStrategyError("No content returned");
+      }
+    } catch (e) {
+      setStrategyError(e instanceof Error ? e.message : "Failed to load strategy");
+    } finally {
+      setStrategyLoading(false);
+    }
+  };
+
+  const owned = purchaseSuccess || alreadyPurchased;
 
   return (
     <div
@@ -77,10 +122,28 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
             </span>
           )}
         </p>
-        {purchaseSuccess ? (
-          <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex items-center gap-2 text-green-300 text-sm">
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-            Purchase complete. You now have secure access to this strategy.
+        {strategy.cid && (
+          <p className="text-sm text-gray-500 mb-4">
+            <span className="text-gray-500">IPFS CID</span>
+            <span className="block font-mono text-white text-xs break-all mt-0.5">{strategy.cid}</span>
+          </p>
+        )}
+        {owned ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex items-center gap-2 text-green-300 text-sm">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              {purchaseSuccess ? "Purchase complete. You now have secure access to this strategy." : "You already own this strategy. One purchase per user."}
+            </div>
+            {strategy.cid && (
+              <button
+                type="button"
+                onClick={handleViewStrategy}
+                className="w-full py-2.5 rounded-xl font-medium text-white border border-white/20 bg-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+              >
+                <FileJson className="w-4 h-4" />
+                View strategy (JSON)
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -122,6 +185,40 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
           NEAR payment → NOVA secure access grant
         </p>
       </div>
+
+      {strategyModalOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70"
+          onClick={() => setStrategyModalOpen(false)}
+        >
+          <div
+            className="rounded-2xl border border-white/10 bg-background p-6 max-w-2xl w-full max-h-[85vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Strategy data</h3>
+              <button
+                onClick={() => setStrategyModalOpen(false)}
+                className="p-2 rounded-lg hover:bg-white/10 text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {strategyLoading ? (
+              <div className="flex items-center justify-center gap-2 py-12 text-gray-400">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                Loading…
+              </div>
+            ) : strategyError ? (
+              <p className="text-sm text-red-400 py-4">{strategyError}</p>
+            ) : strategyContent ? (
+              <pre className="flex-1 overflow-auto rounded-xl border border-white/10 bg-black/30 p-4 text-xs text-gray-300 font-mono whitespace-pre-wrap break-words">
+                {strategyContent}
+              </pre>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

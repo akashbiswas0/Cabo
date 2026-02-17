@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@defuse-protocol/one-click-sdk-typescript": "^0.1.16",
+    "@supabase/supabase-js": "^2.95.3",
     "lucide-react": "^0.564.0",
     "near-connect-hooks": "^1.0.3",
     "next": "16.1.6",

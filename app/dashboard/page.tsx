@@ -458,7 +458,7 @@ export default function DashboardPage() {
         <div className="p-6 border-b border-white/10">
           <Link href="/" className="inline-block">
             <span className="text-xl font-serif italic font-normal tracking-tight text-white md:text-2xl">
-              Cabo
+              Cabo Protocol
             </span>
           </Link>
         </div>

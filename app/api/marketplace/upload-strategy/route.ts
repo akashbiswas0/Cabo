@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
         priceType: (priceType as "one-time" | "subscription") || "one-time",
         seller: accountId,
         createdAt: new Date().toISOString(),
+        cid: result.cid,
       });
     } catch (e) {
       console.warn("Could not persist listing metadata:", e);
