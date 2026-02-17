@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { X, Lock, Upload, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
+import { X, Upload, Loader2, CheckCircle2, ExternalLink } from "lucide-react";
 import type { UploadFormState } from "./types";
 
 type Props = {
@@ -72,27 +72,13 @@ export default function UploadStrategyModal({ onClose, listerAccountId }: Props)
     } catch (err) {
       clearTimeout(timeoutId);
       if (err instanceof Error && err.name === "AbortError") {
-        setError("Request took too long. Your transaction may have succeeded — check NEAR Explorer or paste the transaction hash below.");
+        setError("Request took too long. Your transaction may have succeeded — check NEAR Explorer.");
       } else {
         setError(err instanceof Error ? err.message : "Upload failed");
       }
     } finally {
       setUploading(false);
     }
-  };
-
-  const handlePasteTxHash = (e: React.FormEvent) => {
-    e.preventDefault();
-    const raw = (document.getElementById("paste-tx-hash") as HTMLInputElement | null)?.value?.trim();
-    if (!raw) {
-      setError("Paste a transaction hash from nearblocks.io");
-      return;
-    }
-    setError(null);
-    setSuccess({
-      trans_id: raw,
-      message: "Your transaction was confirmed on NEAR. If this was a strategy listing, it may have completed — check your NOVA account.",
-    });
   };
 
   if (success) {
@@ -144,12 +130,6 @@ export default function UploadStrategyModal({ onClose, listerAccountId }: Props)
               </dd>
             </div>
           </dl>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex items-start gap-2.5 mb-4">
-            <Lock className="w-4 h-4 text-white/60 flex-shrink-0 mt-0.5" aria-hidden />
-            <p className="text-sm text-gray-400 font-serif italic">
-              Buyers get secure encrypted access only. No raw data shared.
-            </p>
-          </div>
           <button
             type="button"
             onClick={onClose}
@@ -187,25 +167,6 @@ export default function UploadStrategyModal({ onClose, listerAccountId }: Props)
               {error}
             </div>
           )}
-          <form onSubmit={handlePasteTxHash} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-2">
-            <p className="text-xs text-gray-500 font-serif italic">
-              Transaction succeeded but no result? Paste your NEAR transaction hash from nearblocks.io
-            </p>
-            <div className="flex gap-2">
-              <input
-                id="paste-tx-hash"
-                type="text"
-                placeholder="e.g. Fm6KgzGCGx5pdrVzDJo9Y9ZFp1Bgmv8qtRBRbcwLbU36"
-                className="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-white placeholder-gray-500 text-sm font-mono outline-none focus:border-white/20"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-lg border border-white/20 bg-white/10 text-white text-sm font-medium hover:bg-white hover:text-black transition-all"
-              >
-                Show result
-              </button>
-            </div>
-          </form>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Name</label>
             <input
@@ -271,15 +232,6 @@ export default function UploadStrategyModal({ onClose, listerAccountId }: Props)
                 className="text-sm text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-white/10 file:text-white disabled:opacity-60"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1 font-serif italic">
-              File is encrypted client-side and stored in a NOVA shared group. Buyers get secure access only.
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex items-start gap-2.5">
-            <Lock className="w-4 h-4 text-white/60 flex-shrink-0 mt-0.5" aria-hidden />
-            <p className="text-sm text-gray-400 font-serif italic">
-              Buyers get secure encrypted access only. No raw data shared.
-            </p>
           </div>
           <button
             type="submit"

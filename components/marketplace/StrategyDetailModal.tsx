@@ -30,6 +30,7 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
     strategy.priceInNear != null &&
     strategy.priceInNear > 0 &&
     strategy.id.startsWith("strategy.");
+  const canUsePingpay = canPurchase && Boolean(onPayWithPingpay);
   const handleBuy = async () => {
     if (!canPurchase || !onPurchase) return;
     setPurchaseError(null);
@@ -166,24 +167,40 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
               <p className="text-sm text-red-400 mb-3">{purchaseError}</p>
             )}
             {isConnected ? (
-              <button
-                type="button"
-                disabled={!canPurchase || purchasing}
-                onClick={handleBuy}
-                className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {purchasing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing…
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-5 h-5" />
-                    {canPurchase ? `Buy with NEAR (${strategy.price})` : "Buy with NEAR"}
-                  </>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  disabled={!canPurchase || purchasing}
+                  onClick={handleBuy}
+                  className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {purchasing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processing…
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="w-5 h-5" />
+                      {canPurchase ? `Buy with NEAR (${strategy.price})` : "Buy with NEAR"}
+                    </>
+                  )}
+                </button>
+                {canUsePingpay && (
+                  <button
+                    type="button"
+                    disabled={pingpayRedirecting || purchasing}
+                    onClick={handlePayWithPingpay}
+                    className="w-full py-2.5 rounded-xl font-medium text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {pingpayRedirecting ? (
+                      <>Redirecting to Pingpay…</>
+                    ) : (
+                      <>Pay with Pingpay</>
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
             ) : (
               <div className="space-y-2">
                 <button
@@ -194,7 +211,7 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
                   <Wallet className="w-5 h-5" />
                   Connect wallet to buy
                 </button>
-                {canPurchase && onPayWithPingpay && (
+                {canUsePingpay && (
                   <button
                     type="button"
                     disabled={pingpayRedirecting}

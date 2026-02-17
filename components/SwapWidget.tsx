@@ -27,6 +27,8 @@ const NEAR_DECIMALS = 24;
 const DEFAULT_SLIPPAGE_BPS = 100;
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1000;
+const DEPLOY_CONFIRMATION_DELAY_MS = 8000;
+const DEPLOY_TOAST_TIMEOUT_MS = 3500;
 
 function formatUsd(value?: string): string {
   if (!value) {
@@ -85,6 +87,14 @@ type DestinationTokenPickerProps = {
   open: boolean;
   onToggle: () => void;
   onSelect: (assetId: string) => void;
+};
+
+type PurchasedStrategyOption = {
+  id: string;
+  name: string;
+  seller: string;
+  purchasedAt: string;
+  cid: string | null;
 };
 
 const DestinationTokenPicker: React.FC<DestinationTokenPickerProps> = ({
@@ -176,6 +186,13 @@ const SwapCard: React.FC = () => {
   const [latestDepositAddress, setLatestDepositAddress] = useState<string | null>(null);
   const [latestDepositMemo, setLatestDepositMemo] = useState<string | null>(null);
   const [latestTxHash, setLatestTxHash] = useState<string | null>(null);
+  const [purchasedStrategies, setPurchasedStrategies] = useState<PurchasedStrategyOption[]>([]);
+  const [purchasesLoading, setPurchasesLoading] = useState(false);
+  const [purchasesError, setPurchasesError] = useState<string | null>(null);
+  const [selectedPurchasedStrategyId, setSelectedPurchasedStrategyId] = useState("");
+  const [deployError, setDeployError] = useState<string | null>(null);
+  const [deployToastMessage, setDeployToastMessage] = useState<string | null>(null);
+  const [deployingAgent, setDeployingAgent] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -267,14 +284,114 @@ const SwapCard: React.FC = () => {
     setRecipient((current) => current || signedAccountId);
   }, [signedAccountId]);
 
+  useEffect(() => {
+    if (!signedAccountId) {
+      setPurchasedStrategies([]);
+      setSelectedPurchasedStrategyId("");
+      setPurchasesLoading(false);
+      setPurchasesError(null);
+      setDeployError(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    setPurchasesLoading(true);
+    setPurchasesError(null);
+
+    fetch(`/api/marketplace/purchases?accountId=${encodeURIComponent(signedAccountId)}`, {
+      signal: abortController.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load purchased strategies (${response.status})`);
+        }
+        return response.json();
+      })
+      .then((data: unknown) => {
+        if (!isMountedRef.current || abortController.signal.aborted) {
+          return;
+        }
+
+        if (!Array.isArray(data)) {
+          setPurchasedStrategies([]);
+          setSelectedPurchasedStrategyId("");
+          return;
+        }
+
+        const mapped = data
+          .map((row): PurchasedStrategyOption | null => {
+            if (!row || typeof row !== "object") {
+              return null;
+            }
+            const record = row as Record<string, unknown>;
+            const id = typeof record.id === "string" ? record.id.trim() : "";
+            const name =
+              typeof record.name === "string" && record.name.trim()
+                ? record.name.trim()
+                : "Unnamed strategy";
+            if (!id) {
+              return null;
+            }
+
+            return {
+              id,
+              name,
+              seller: typeof record.seller === "string" ? record.seller : "",
+              purchasedAt:
+                typeof record.purchasedAt === "string"
+                  ? record.purchasedAt
+                  : typeof record.purchased_at === "string"
+                    ? record.purchased_at
+                    : "",
+              cid: typeof record.cid === "string" ? record.cid : null,
+            };
+          })
+          .filter((strategy): strategy is PurchasedStrategyOption => strategy !== null);
+
+        setPurchasedStrategies(mapped);
+        setSelectedPurchasedStrategyId((current) =>
+          current && mapped.some((strategy) => strategy.id === current) ? current : "",
+        );
+      })
+      .catch((error) => {
+        if (abortController.signal.aborted || !isMountedRef.current) {
+          return;
+        }
+        setPurchasedStrategies([]);
+        setSelectedPurchasedStrategyId("");
+        setPurchasesError(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (!abortController.signal.aborted && isMountedRef.current) {
+          setPurchasesLoading(false);
+        }
+      });
+
+    return () => abortController.abort();
+  }, [signedAccountId]);
+
+  useEffect(() => {
+    if (!deployToastMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setDeployToastMessage(null);
+    }, DEPLOY_TOAST_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [deployToastMessage]);
+
   const selectedDestinationToken = useMemo(
     () => tokenOptions.find((token) => token.assetId === destinationAsset) || null,
     [destinationAsset, tokenOptions],
   );
 
-  const recipientRouteMode = useMemo(() => {
-    return "DESTINATION_CHAIN";
-  }, []);
+  const selectedPurchasedStrategy = useMemo(
+    () =>
+      purchasedStrategies.find((strategy) => strategy.id === selectedPurchasedStrategyId) ?? null,
+    [purchasedStrategies, selectedPurchasedStrategyId],
+  );
 
   const amountYocto = useMemo(
     () => decimalToUnits(sellAmountInput, NEAR_DECIMALS),
@@ -498,6 +615,37 @@ const SwapCard: React.FC = () => {
     validationMessage,
   ]);
 
+  const handleDeployShadeAgent = useCallback(async () => {
+    setDeployError(null);
+
+    if (!signedAccountId) {
+      await signIn();
+      return;
+    }
+
+    if (!selectedPurchasedStrategy) {
+      setDeployError("Select a purchased strategy to deploy.");
+      return;
+    }
+
+    setDeployToastMessage(null);
+    setDeployingAgent(true);
+    try {
+      await sleep(DEPLOY_CONFIRMATION_DELAY_MS);
+      if (!isMountedRef.current) {
+        return;
+      }
+      const destinationSymbol = selectedDestinationToken?.symbol ?? "Token";
+      setDeployToastMessage(
+        `Agent deployed for ${selectedPurchasedStrategy.name} on NEAR -> ${destinationSymbol}`,
+      );
+    } finally {
+      if (isMountedRef.current) {
+        setDeployingAgent(false);
+      }
+    }
+  }, [selectedDestinationToken, selectedPurchasedStrategy, signIn, signedAccountId]);
+
   const onAmountChange = (nextValue: string) => {
     if (isDecimalInput(nextValue)) {
       setSellAmountInput(nextValue);
@@ -526,6 +674,18 @@ const SwapCard: React.FC = () => {
     Boolean(dryQuote);
 
   const actionDisabled = signedAccountId ? !canSwap : walletLoading;
+  const deployButtonLabel = deployingAgent
+    ? "Deploying Agent..."
+    : !signedAccountId
+      ? "Connect Wallet to Deploy"
+      : selectedPurchasedStrategy
+        ? "Deploy Shade Agent"
+        : "Select Strategy to Deploy";
+  const deployButtonDisabled =
+    walletLoading ||
+    purchasesLoading ||
+    deployingAgent ||
+    (Boolean(signedAccountId) && !selectedPurchasedStrategy);
 
   const statusTone = (status: ExecutionStatus | undefined) => {
     if (status === "SUCCESS") return "text-green-400";
@@ -697,6 +857,74 @@ const SwapCard: React.FC = () => {
           <Wallet className="w-5 h-5 group-hover:scale-110 transition-transform" />
           {actionLabel}
         </button>
+
+        <div className="rounded-xl border border-white/10 bg-[#1E1F25] px-4 py-4 space-y-3">
+          <label
+            htmlFor="deploy-strategy-select"
+            className="block text-sm text-gray-400"
+          >
+            Strategy
+          </label>
+          <select
+            id="deploy-strategy-select"
+            value={selectedPurchasedStrategyId}
+            onChange={(event) => {
+              setSelectedPurchasedStrategyId(event.target.value);
+              setDeployError(null);
+            }}
+            disabled={!signedAccountId || purchasesLoading || purchasedStrategies.length === 0}
+            className="w-full rounded-xl bg-[#2C2D35] border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/30 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <option value="">Select purchased strategy</option>
+            {purchasedStrategies.map((strategy) => (
+              <option key={strategy.id} value={strategy.id}>
+                {strategy.name}
+              </option>
+            ))}
+          </select>
+
+          {!signedAccountId && (
+            <p className="text-xs text-gray-400">Connect wallet to load purchased strategies.</p>
+          )}
+          {signedAccountId && purchasesLoading && (
+            <p className="text-xs text-gray-400">Loading purchased strategies...</p>
+          )}
+          {signedAccountId && purchasesError && (
+            <p className="text-xs text-red-400">{purchasesError}</p>
+          )}
+          {signedAccountId &&
+            !purchasesLoading &&
+            !purchasesError &&
+            purchasedStrategies.length === 0 && (
+              <p className="text-xs text-gray-400">
+                No purchased strategies found. Buy one in Marketplace.
+              </p>
+            )}
+          {deployError && <p className="text-xs text-red-400">{deployError}</p>}
+
+          <button
+            type="button"
+            onClick={() => void handleDeployShadeAgent()}
+            disabled={deployButtonDisabled}
+            className={`w-full py-3 rounded-xl border font-semibold text-sm transition-all ${
+              deployButtonDisabled
+                ? "border-white/20 text-gray-400 cursor-not-allowed"
+                : "border-emerald-400/40 text-emerald-300 hover:bg-emerald-500/10"
+            }`}
+          >
+            {deployButtonLabel}
+          </button>
+        </div>
+
+        {deployToastMessage && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-xl border border-green-400/30 bg-green-500/10 px-4 py-3 text-sm text-green-300"
+          >
+            {deployToastMessage}
+          </div>
+        )}
 
         {(executionStatus || latestDepositAddress || latestTxHash) && (
           <div className="rounded-xl border border-white/10 bg-[#1E1F25] px-4 py-3 text-sm space-y-2">

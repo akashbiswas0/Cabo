@@ -22,6 +22,7 @@ const SIDEBAR_NAV_ITEMS = [
 
 const NEAR_DECIMALS = 24;
 const ONE_NEAR_YOCTO = "1000000000000000000000000";
+const POINT_ZERO_ONE_NEAR_YOCTO = "10000000000000000000000";
 
 type PriceSnapshot = {
   usd: number;
@@ -212,6 +213,7 @@ export default function DashboardPage() {
   const [userError, setUserError] = useState<string | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
   const [fundingAgent, setFundingAgent] = useState(false);
+  const [fundingAgentAmount, setFundingAgentAmount] = useState<"1" | "0.01" | null>(null);
   const [fundAgentMessage, setFundAgentMessage] = useState<string | null>(null);
   const [fundAgentError, setFundAgentError] = useState<string | null>(null);
 
@@ -408,7 +410,7 @@ export default function DashboardPage() {
     }
   }, [agentAccountId, buildPortfolio]);
 
-  const handleFundAgent = useCallback(async () => {
+  const handleFundAgent = useCallback(async (amountYocto: string, amountLabel: "1" | "0.01") => {
     if (!agentAccountId) {
       setFundAgentError("Agent wallet address is missing. Set NEXT_PUBLIC_AGENT_ADDRESS.");
       setFundAgentMessage(null);
@@ -421,21 +423,23 @@ export default function DashboardPage() {
     }
 
     setFundingAgent(true);
+    setFundingAgentAmount(amountLabel);
     setFundAgentError(null);
     setFundAgentMessage(null);
 
     try {
       await transfer({
         receiverId: agentAccountId,
-        amount: ONE_NEAR_YOCTO,
+        amount: amountYocto,
       });
-      setFundAgentMessage("Successfully funded agent with 1 NEAR.");
+      setFundAgentMessage(`Successfully funded agent with ${amountLabel} NEAR.`);
 
       await Promise.all([fetchUserAssets(), fetchAgentAssets()]);
     } catch (error) {
       setFundAgentError(error instanceof Error ? error.message : "Failed to fund agent wallet.");
     } finally {
       setFundingAgent(false);
+      setFundingAgentAmount(null);
     }
   }, [agentAccountId, fetchAgentAssets, fetchUserAssets, signIn, signedAccountId, transfer]);
 
@@ -520,18 +524,32 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 mb-6">
             {!isUser && (
               <div className="mb-4">
-                <button
-                  type="button"
-                  onClick={handleFundAgent}
-                  disabled={fundingAgent || !agentAccountId}
-                  className="px-4 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {!signedAccountId
-                    ? "Connect wallet to fund agent"
-                    : fundingAgent
-                      ? "Funding agent..."
-                      : "Fund Agent (1 NEAR)"}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleFundAgent(ONE_NEAR_YOCTO, "1")}
+                    disabled={fundingAgent || !agentAccountId}
+                    className="px-4 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {!signedAccountId
+                      ? "Connect wallet to fund agent"
+                      : fundingAgentAmount === "1"
+                        ? "Funding 1 NEAR..."
+                        : "Fund Agent (1 NEAR)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleFundAgent(POINT_ZERO_ONE_NEAR_YOCTO, "0.01")}
+                    disabled={fundingAgent || !agentAccountId}
+                    className="px-4 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {!signedAccountId
+                      ? "Connect wallet to fund agent"
+                      : fundingAgentAmount === "0.01"
+                        ? "Funding 0.01 NEAR..."
+                        : "Fund Agent (0.01 NEAR)"}
+                  </button>
+                </div>
               </div>
             )}
             {isUser && !signedAccountId && (

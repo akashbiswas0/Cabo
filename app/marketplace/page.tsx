@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useNearWallet } from "near-connect-hooks";
-import { PingpayOnramp, PingpayOnrampError } from "@pingpay/onramp-sdk";
 import { CheckCircle2, Wallet } from "lucide-react";
 import {
   TrustPrivacyBanner,
@@ -22,6 +22,7 @@ function nearToYocto(near: number): string {
 }
 
 export default function MarketplacePage() {
+  const router = useRouter();
   const { signedAccountId, signIn, transfer } = useNearWallet();
   const [activeTab, setActiveTab] = useState<TabId>("discover");
   const [pingpaySuccessToken, setPingpaySuccessToken] = useState<string | null>(null);
@@ -172,22 +173,9 @@ export default function MarketplacePage() {
     else throw new Error("No checkout URL returned");
   }, []);
 
-  const handleBuyCrypto = useCallback(async () => {
-    try {
-      const onrampOptions: { popupUrl?: string } = {};
-      if (typeof process.env.NEXT_PUBLIC_PINGPAY_POPUP_URL === "string") {
-        onrampOptions.popupUrl = process.env.NEXT_PUBLIC_PINGPAY_POPUP_URL;
-      }
-      const onramp = new PingpayOnramp(onrampOptions);
-      await onramp.initiateOnramp({ chain: "NEAR", asset: "wNEAR" });
-    } catch (error) {
-      if (error instanceof PingpayOnrampError) {
-        console.error("PingPay onramp failed:", error.message);
-      } else {
-        console.error("PingPay onramp error:", error);
-      }
-    }
-  }, []);
+  const handleBuyCrypto = useCallback(() => {
+    router.push("/pingpay");
+  }, [router]);
 
   const strategies = useMemo(
     () => getStrategiesForTab(activeTab),
