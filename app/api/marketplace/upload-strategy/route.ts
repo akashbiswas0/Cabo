@@ -87,7 +87,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await sdk.registerGroup(groupId);
+    try {
+      await sdk.registerGroup(groupId);
+    } catch (regErr) {
+      const msg = regErr instanceof Error ? regErr.message : "";
+      const alreadyExists = /already.?exist|duplicate|registered/i.test(msg);
+      if (!alreadyExists) throw regErr;
+      console.warn("Group already registered, continuing with upload:", groupId);
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await sdk.upload(groupId, buffer, file.name);
