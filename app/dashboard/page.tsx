@@ -3,12 +3,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useNearWallet } from "near-connect-hooks";
+import Navbar from "@/components/Navbar";
 import {
-  Search,
   ArrowUpRight,
-  Leaf,
+  User,
   Brain,
-  Wallet,
 } from "lucide-react";
 import {
   fetchAccountFtBalances,
@@ -19,7 +18,7 @@ import {
 } from "@/lib/tradeData";
 
 const SIDEBAR_NAV_ITEMS = [
-  { id: "user" as const, label: "User", icon: Leaf },
+  { id: "user" as const, label: "User", icon: User },
   { id: "agent" as const, label: "Agent", icon: Brain },
 ];
 
@@ -440,7 +439,9 @@ export default function DashboardPage() {
   const activeAccountId = isUser ? signedAccountId : agentAccountId;
 
   return (
-    <div className="min-h-screen flex bg-background text-white">
+    <div className="min-h-screen bg-background text-white">
+      <Navbar />
+      <div className="min-h-screen flex">
       {/* Mini grid background */}
       <div
         className="fixed inset-0 z-0 pointer-events-none opacity-10"
@@ -454,13 +455,9 @@ export default function DashboardPage() {
       />
 
       {/* Sidebar */}
-      <aside className="relative z-10 w-56 md:w-64 flex-shrink-0 border-r border-white/10 bg-white/[0.02] flex flex-col min-h-screen">
+      <aside className="relative z-10 w-56 md:w-64 flex-shrink-0 border-r border-white/10 bg-white/[0.02] flex flex-col min-h-screen pt-24">
         <div className="p-6 border-b border-white/10">
-          <Link href="/" className="inline-block">
-            <span className="text-xl font-serif italic font-normal tracking-tight text-white md:text-2xl">
-              Cabo Protocol
-            </span>
-          </Link>
+          
         </div>
         <nav className="flex-1 p-4 space-y-0.5">
           {SIDEBAR_NAV_ITEMS.map((item) => (
@@ -479,46 +476,11 @@ export default function DashboardPage() {
             </button>
           ))}
         </nav>
-        <div className="p-4 border-t border-white/10">
-          <a
-            href="#"
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Terms of Use
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </a>
-        </div>
+
       </aside>
 
       {/* Main content */}
-      <main className="relative z-10 flex-1 flex flex-col min-h-screen overflow-auto">
-        {/* Top bar */}
-        <header className="flex-shrink-0 flex items-center justify-between gap-4 px-6 py-5 border-b border-white/10">
-          <h1 className="text-3xl font-semibold text-white">Dashboard</h1>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-gray-400">
-              <Search className="w-4 h-4 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Search for a token..."
-                className="bg-transparent border-none outline-none text-sm text-white placeholder-gray-400 w-40 md:w-52"
-              />
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm">
-              <Wallet className="w-5 h-5 text-white/80 flex-shrink-0" />
-              {signedAccountId ? (
-                <span className="font-mono text-white truncate max-w-[180px]" title={signedAccountId}>
-                  {signedAccountId.length > 20
-                    ? `${signedAccountId.slice(0, 10)}...${signedAccountId.slice(-8)}`
-                    : signedAccountId}
-                </span>
-              ) : (
-                <span className="text-gray-400">Connect wallet</span>
-              )}
-            </div>
-          </div>
-        </header>
-
+      <main className="relative z-10 flex-1 flex flex-col min-h-screen overflow-auto pt-24">
         <div className="flex-1 px-6 py-6">
           <h2 className="ml-2 text-2xl font-medium font-serif italic font-normal tracking-tight text-white mb-4">
             Accounts
@@ -632,6 +594,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 }
