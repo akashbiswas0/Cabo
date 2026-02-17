@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { useNearWallet } from "near-connect-hooks";
 import { PingpayOnramp, PingpayOnrampError } from "@pingpay/onramp-sdk";
+import { CheckCircle2, Wallet } from "lucide-react";
 import {
   TrustPrivacyBanner,
   MarketplaceTabs,
@@ -23,6 +24,9 @@ function nearToYocto(near: number): string {
 export default function MarketplacePage() {
   const { signedAccountId, signIn, transfer } = useNearWallet();
   const [activeTab, setActiveTab] = useState<TabId>("discover");
+  const [pingpaySuccessToken, setPingpaySuccessToken] = useState<string | null>(null);
+  const [pingpayCompleting, setPingpayCompleting] = useState(false);
+  const [pingpayCompleteError, setPingpayCompleteError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
@@ -76,6 +80,37 @@ export default function MarketplacePage() {
       .finally(() => setPurchasesLoading(false));
   }, [signedAccountId]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+    if (params.get("pingpay") === "success" && params.get("token")) {
+      setPingpaySuccessToken(params.get("token"));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pingpaySuccessToken || !signedAccountId || pingpayCompleting) return;
+    setPingpayCompleting(true);
+    setPingpayCompleteError(null);
+    fetch("/api/marketplace/pingpay-complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: pingpaySuccessToken, buyerAccountId: signedAccountId }),
+    })
+      .then((res) => res.json().then((data) => ({ res, data })))
+      .then(({ res, data }) => {
+        if (res.ok) {
+          setPingpaySuccessToken(null);
+          window.history.replaceState({}, "", "/marketplace");
+          return fetch(`/api/marketplace/purchases?accountId=${encodeURIComponent(signedAccountId)}`)
+            .then((r) => r.json())
+            .then((list) => setApiPurchases(Array.isArray(list) ? list : []));
+        }
+        setPingpayCompleteError(data.detail || data.error || "Failed to complete");
+      })
+      .catch(() => setPingpayCompleteError("Failed to complete access"))
+      .finally(() => setPingpayCompleting(false));
+  }, [pingpaySuccessToken, signedAccountId]);
+
   const purchasedGroupIds = useMemo(
     () => new Set(apiPurchases.map((s) => s.id)),
     [apiPurchases]
@@ -119,6 +154,23 @@ export default function MarketplacePage() {
       : activeTab === "listings"
         ? myListingsLoading
         : purchasesLoading;
+
+  const handlePayWithPingpay = useCallback(async (strategy: Strategy) => {
+    if (strategy.priceInNear == null || strategy.priceInNear <= 0) throw new Error("Invalid price");
+    const res = await fetch("/api/marketplace/pingpay-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        groupId: strategy.id,
+        seller: strategy.seller,
+        amountInNear: strategy.priceInNear,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || data.error || "Checkout failed");
+    if (data.sessionUrl) window.location.href = data.sessionUrl;
+    else throw new Error("No checkout URL returned");
+  }, []);
 
   const handleBuyCrypto = useCallback(async () => {
     try {
@@ -170,6 +222,31 @@ export default function MarketplacePage() {
         <div className="mb-8">
           <TrustPrivacyBanner variant="banner" />
         </div>
+
+        {pingpaySuccessToken && (
+          <div className="mb-6 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 text-green-300 text-sm">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <span>
+                Payment received! Connect your NEAR wallet to access the strategy.
+              </span>
+            </div>
+            {!signedAccountId ? (
+              <button
+                type="button"
+                onClick={() => signIn()}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white bg-white/20 hover:bg-white/30 transition-colors shrink-0"
+              >
+                <Wallet className="w-4 h-4" />
+                Connect wallet
+              </button>
+            ) : pingpayCompleting ? (
+              <span className="text-sm text-gray-400">Granting access…</span>
+            ) : pingpayCompleteError ? (
+              <p className="text-sm text-red-400">{pingpayCompleteError}</p>
+            ) : null}
+          </div>
+        )}
 
         <MarketplaceTabs
           activeTab={activeTab}
@@ -239,6 +316,7 @@ export default function MarketplacePage() {
           isConnected={!!signedAccountId}
           onConnect={() => signIn()}
           onPurchase={handlePurchase}
+          onPayWithPingpay={handlePayWithPingpay}
           alreadyPurchased={purchasedGroupIds.has(selectedStrategy.id)}
         />
       )}

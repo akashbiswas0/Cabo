@@ -23,9 +23,22 @@ export type PurchaseRow = {
   purchased_at: string;
 };
 
+export type PingpayCheckoutReturnRow = {
+  token: string;
+  session_id: string;
+  group_id: string;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
+      pingpay_checkout_returns: {
+        Row: PingpayCheckoutReturnRow;
+        Insert: Omit<PingpayCheckoutReturnRow, "created_at"> & { created_at?: string };
+        Update: Partial<PingpayCheckoutReturnRow>;
+        Relationships: [];
+      };
       marketplace_listings: {
         Row: MarketplaceListingRow;
         Insert: Omit<MarketplaceListingRow, "id" | "created_at"> & {

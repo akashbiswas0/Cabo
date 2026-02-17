@@ -11,10 +11,13 @@ type Props = {
   onPurchase?: (strategy: Strategy) => Promise<void>;
   /** True if this user has already purchased this strategy (one purchase per user). */
   alreadyPurchased?: boolean;
+  /** Called when user chooses Pay with Pingpay (redirects to Pingpay). */
+  onPayWithPingpay?: (strategy: Strategy) => Promise<void>;
 };
 
-export default function StrategyDetailModal({ strategy, onClose, isConnected, onConnect, onPurchase, alreadyPurchased }: Props) {
+export default function StrategyDetailModal({ strategy, onClose, isConnected, onConnect, onPurchase, onPayWithPingpay, alreadyPurchased }: Props) {
   const [purchasing, setPurchasing] = useState(false);
+  const [pingpayRedirecting, setPingpayRedirecting] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
   const [strategyModalOpen, setStrategyModalOpen] = useState(false);
@@ -38,6 +41,18 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
       setPurchaseError(e instanceof Error ? e.message : "Purchase failed");
     } finally {
       setPurchasing(false);
+    }
+  };
+
+  const handlePayWithPingpay = async () => {
+    if (!canPurchase || !onPayWithPingpay) return;
+    setPurchaseError(null);
+    setPingpayRedirecting(true);
+    try {
+      await onPayWithPingpay(strategy);
+    } catch (e) {
+      setPurchaseError(e instanceof Error ? e.message : "Failed to start checkout");
+      setPingpayRedirecting(false);
     }
   };
 
@@ -170,14 +185,30 @@ export default function StrategyDetailModal({ strategy, onClose, isConnected, on
                 )}
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={onConnect}
-                className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-              >
-                <Wallet className="w-5 h-5" />
-                Connect wallet to buy
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={onConnect}
+                  className="w-full py-3 rounded-xl font-semibold text-white border border-white/20 bg-white/10 hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
+                >
+                  <Wallet className="w-5 h-5" />
+                  Connect wallet to buy
+                </button>
+                {canPurchase && onPayWithPingpay && (
+                  <button
+                    type="button"
+                    disabled={pingpayRedirecting}
+                    onClick={handlePayWithPingpay}
+                    className="w-full py-2.5 rounded-xl font-medium text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {pingpayRedirecting ? (
+                      <>Redirecting to Pingpay…</>
+                    ) : (
+                      <>Pay with Pingpay</>
+                    )}
+                  </button>
+                )}
+              </div>
             )}
           </>
         )}
