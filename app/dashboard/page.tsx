@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useNearWallet } from "near-connect-hooks";
 import Navbar from "@/components/Navbar";
 import {
-  ArrowUpRight,
   User,
   Brain,
 } from "lucide-react";
@@ -436,8 +434,6 @@ export default function DashboardPage() {
         ? "text-green-400"
         : "text-red-400";
 
-  const activeAccountId = isUser ? signedAccountId : agentAccountId;
-
   return (
     <div className="min-h-screen bg-background text-white">
       <Navbar />
@@ -486,14 +482,6 @@ export default function DashboardPage() {
             Accounts
           </h2>
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 mb-6">
-            {!isUser && (
-              <p className="text-xs text-gray-500 mb-4">
-                Agent address (`NEXT_PUBLIC_AGENT_ADDRESS`):{" "}
-                <span className="font-mono text-gray-300 break-all">
-                  {agentAccountId || "Not set"}
-                </span>
-              </p>
-            )}
             {isUser && !signedAccountId && (
               <p className="text-gray-400 text-sm mb-4">
                 Connect your NEAR wallet from the navbar to see your assets here.
@@ -516,14 +504,6 @@ export default function DashboardPage() {
                 <p className="text-3xl md:text-4xl font-bold text-white tracking-tight">{totalUsd}</p>
                 <p className={`text-sm mt-1 ${changeClass}`}>{changeLine}</p>
               </div>
-              {activeAccountId && (
-                <p
-                  className="text-xs text-gray-500 font-mono truncate max-w-[260px]"
-                  title={activeAccountId}
-                >
-                  {activeAccountId}
-                </p>
-              )}
             </div>
 
             {/* Table */}
