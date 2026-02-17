@@ -7,6 +7,7 @@ import {
   MarketplaceTabs,
   MarketplaceFilters,
   StrategyCard,
+  StrategyCardSkeleton,
   StrategyDetailModal,
   UploadStrategyModal,
   filterStrategies,
@@ -32,30 +33,40 @@ export default function MarketplacePage() {
   const [apiListings, setApiListings] = useState<Strategy[]>([]);
   const [myListings, setMyListings] = useState<Strategy[]>([]);
   const [apiPurchases, setApiPurchases] = useState<Strategy[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [myListingsLoading, setMyListingsLoading] = useState(true);
+  const [purchasesLoading, setPurchasesLoading] = useState(false);
 
   useEffect(() => {
+    setListingsLoading(true);
     fetch("/api/marketplace/listings")
       .then((r) => r.json())
       .then((data) => setApiListings(Array.isArray(data) ? data : []))
-      .catch(() => setApiListings([]));
+      .catch(() => setApiListings([]))
+      .finally(() => setListingsLoading(false));
   }, [showUploadModal]);
 
   useEffect(() => {
+    setMyListingsLoading(true);
     fetch("/api/marketplace/listings?mine=1")
       .then((r) => r.json())
       .then((data) => setMyListings(Array.isArray(data) ? data : []))
-      .catch(() => setMyListings([]));
+      .catch(() => setMyListings([]))
+      .finally(() => setMyListingsLoading(false));
   }, [showUploadModal]);
 
   useEffect(() => {
     if (!signedAccountId) {
       setApiPurchases([]);
+      setPurchasesLoading(false);
       return;
     }
+    setPurchasesLoading(true);
     fetch(`/api/marketplace/purchases?accountId=${encodeURIComponent(signedAccountId)}`)
       .then((r) => r.json())
       .then((data) => setApiPurchases(Array.isArray(data) ? data : []))
-      .catch(() => setApiPurchases([]));
+      .catch(() => setApiPurchases([]))
+      .finally(() => setPurchasesLoading(false));
   }, [signedAccountId]);
 
   const purchasedGroupIds = useMemo(
@@ -94,6 +105,13 @@ export default function MarketplacePage() {
     if (!res.ok) throw new Error(data.detail || data.error || "Purchase failed");
     setApiPurchases((prev) => [strategy, ...prev]);
   };
+
+  const strategiesLoading =
+    activeTab === "discover"
+      ? listingsLoading
+      : activeTab === "listings"
+        ? myListingsLoading
+        : purchasesLoading;
 
   const strategies = useMemo(
     () => getStrategiesForTab(activeTab),
@@ -161,16 +179,18 @@ export default function MarketplacePage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredStrategies.map((strategy) => (
-            <StrategyCard
-              key={strategy.id}
-              strategy={strategy}
-              onClick={() => setSelectedStrategy(strategy)}
-            />
-          ))}
+          {strategiesLoading
+            ? Array.from({ length: 6 }).map((_, i) => <StrategyCardSkeleton key={i} />)
+            : filteredStrategies.map((strategy) => (
+                <StrategyCard
+                  key={strategy.id}
+                  strategy={strategy}
+                  onClick={() => setSelectedStrategy(strategy)}
+                />
+              ))}
         </div>
 
-        {filteredStrategies.length === 0 && (
+        {!strategiesLoading && filteredStrategies.length === 0 && (
           <p className="text-gray-500 text-center py-12 font-serif italic text-sm">
             {activeTab === "purchases"
               ? signedAccountId

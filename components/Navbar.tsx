@@ -57,9 +57,11 @@ const Navbar: React.FC = () => {
       <div className="flex items-center justify-between w-full max-w-5xl rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl px-4 md:px-8 py-3 shadow-lg">
         {/* Logo */}
         <div className="flex items-center gap-2 cursor-pointer group">
+          <Link href="/">
           <span className="text-2xl font-serif italic font-normal md:text-3xl tracking-tight text-white group-hover:opacity-80 transition-opacity">
             Cabo
           </span>
+          </Link>
         </div>
 
         {/* Right: dashboard (when connected) + wallet menu */}
@@ -76,15 +78,15 @@ const Navbar: React.FC = () => {
           <div ref={walletMenuRef} className="relative">
             <button
               onClick={handleWalletClick}
-              className="hidden md:flex px-6 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 items-center gap-2"
-              title={signedAccountId ? "Wallet menu" : "Connect wallet"}
+              className="hidden md:flex px-6 py-2.5 text-sm font-medium border cursor-pointer   border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 items-center gap-2"
+              title={signedAccountId ? "Wallet menu" : "Launch App"}
             >
               {loading ? (
                 "Loading..."
               ) : walletLabel ? (
                 <span className="font-mono">{walletLabel}</span>
               ) : (
-                "connect wallet"
+                "Launch App"
               )}
             </button>
             <button

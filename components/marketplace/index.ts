@@ -2,6 +2,7 @@ export { default as TrustPrivacyBanner } from "./TrustPrivacyBanner";
 export { default as MarketplaceTabs } from "./MarketplaceTabs";
 export { default as MarketplaceFilters } from "./MarketplaceFilters";
 export { default as StrategyCard } from "./StrategyCard";
+export { default as StrategyCardSkeleton } from "./StrategyCardSkeleton";
 export { default as StrategyDetailModal } from "./StrategyDetailModal";
 export { default as UploadStrategyModal } from "./UploadStrategyModal";
 export { filterStrategies } from "./utils";

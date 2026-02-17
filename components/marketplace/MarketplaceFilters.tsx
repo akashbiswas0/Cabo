@@ -20,10 +20,6 @@ type Props = {
 export default function MarketplaceFilters({
   searchQuery,
   onSearchChange,
-  priceMin,
-  onPriceMinChange,
-  priceMax,
-  onPriceMaxChange,
   riskFilter,
   onRiskFilterChange,
   assetFilter,
@@ -46,20 +42,7 @@ export default function MarketplaceFilters({
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          placeholder="Min price (NEAR)"
-          value={priceMin}
-          onChange={(e) => onPriceMinChange(e.target.value)}
-          className="w-28 px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white text-sm placeholder-gray-500 focus:border-white/20 outline-none transition-colors"
-        />
-        <input
-          type="text"
-          placeholder="Max price (NEAR)"
-          value={priceMax}
-          onChange={(e) => onPriceMaxChange(e.target.value)}
-          className="w-28 px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white text-sm placeholder-gray-500 focus:border-white/20 outline-none transition-colors"
-        />
+        
         <select
           value={riskFilter}
           onChange={(e) => onRiskFilterChange(e.target.value)}
