@@ -659,9 +659,7 @@ const SwapCard: React.FC = () => {
             }
             className="w-full rounded-xl bg-[#2C2D35] border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
           />
-          <p className="mt-2 text-xs text-gray-500">
-            Route mode: {recipientRouteMode} (NEAR assets only)
-          </p>
+          
         </div>
 
         <div className="bg-[#1E1F25] rounded-xl p-4 flex items-center justify-between border border-white/5">

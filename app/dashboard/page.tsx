@@ -21,6 +21,7 @@ const SIDEBAR_NAV_ITEMS = [
 ];
 
 const NEAR_DECIMALS = 24;
+const ONE_NEAR_YOCTO = "1000000000000000000000000";
 
 type PriceSnapshot = {
   usd: number;
@@ -198,7 +199,8 @@ function buildChangeLine(totalUsd: number, changePct: number | null): string {
 }
 
 export default function DashboardPage() {
-  const { signedAccountId, getBalance, viewFunction, network } = useNearWallet();
+  const { signedAccountId, signIn, transfer, getBalance, viewFunction, network } =
+    useNearWallet();
   const [viewMode, setViewMode] = useState<"user" | "agent">("user");
 
   const [userPortfolio, setUserPortfolio] = useState<PortfolioData>(EMPTY_PORTFOLIO);
@@ -209,6 +211,9 @@ export default function DashboardPage() {
 
   const [userError, setUserError] = useState<string | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
+  const [fundingAgent, setFundingAgent] = useState(false);
+  const [fundAgentMessage, setFundAgentMessage] = useState<string | null>(null);
+  const [fundAgentError, setFundAgentError] = useState<string | null>(null);
 
   const agentAccountId = process.env.NEXT_PUBLIC_AGENT_ADDRESS?.trim() || "";
 
@@ -403,6 +408,37 @@ export default function DashboardPage() {
     }
   }, [agentAccountId, buildPortfolio]);
 
+  const handleFundAgent = useCallback(async () => {
+    if (!agentAccountId) {
+      setFundAgentError("Agent wallet address is missing. Set NEXT_PUBLIC_AGENT_ADDRESS.");
+      setFundAgentMessage(null);
+      return;
+    }
+
+    if (!signedAccountId) {
+      signIn();
+      return;
+    }
+
+    setFundingAgent(true);
+    setFundAgentError(null);
+    setFundAgentMessage(null);
+
+    try {
+      await transfer({
+        receiverId: agentAccountId,
+        amount: ONE_NEAR_YOCTO,
+      });
+      setFundAgentMessage("Successfully funded agent with 1 NEAR.");
+
+      await Promise.all([fetchUserAssets(), fetchAgentAssets()]);
+    } catch (error) {
+      setFundAgentError(error instanceof Error ? error.message : "Failed to fund agent wallet.");
+    } finally {
+      setFundingAgent(false);
+    }
+  }, [agentAccountId, fetchAgentAssets, fetchUserAssets, signIn, signedAccountId, transfer]);
+
   useEffect(() => {
     if (signedAccountId) {
       void fetchUserAssets();
@@ -482,6 +518,22 @@ export default function DashboardPage() {
             Accounts
           </h2>
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 mb-6">
+            {!isUser && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={handleFundAgent}
+                  disabled={fundingAgent || !agentAccountId}
+                  className="px-4 py-2.5 text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {!signedAccountId
+                    ? "Connect wallet to fund agent"
+                    : fundingAgent
+                      ? "Funding agent..."
+                      : "Fund Agent (1 NEAR)"}
+                </button>
+              </div>
+            )}
             {isUser && !signedAccountId && (
               <p className="text-gray-400 text-sm mb-4">
                 Connect your NEAR wallet from the navbar to see your assets here.
@@ -498,6 +550,12 @@ export default function DashboardPage() {
               </p>
             )}
             {balanceError && <p className="text-red-400 text-sm mb-4">{balanceError}</p>}
+            {!isUser && fundAgentMessage && (
+              <p className="text-green-400 text-sm mb-4">{fundAgentMessage}</p>
+            )}
+            {!isUser && fundAgentError && (
+              <p className="text-red-400 text-sm mb-4">{fundAgentError}</p>
+            )}
 
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
               <div>
