@@ -84,7 +84,7 @@ const Navbar: React.FC = () => {
                 href="/trade"
                 className="px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
               >
-                Trade Routes
+                Trade
               </Link>
             </>
           )}
