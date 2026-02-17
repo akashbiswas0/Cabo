@@ -11,19 +11,26 @@ create table if not exists public.marketplace_listings (
   created_at timestamptz default now()
 );
 
--- Optional: enable RLS and allow service role full access (default).
--- For public read-only access from anon, add:
--- alter table public.marketplace_listings enable row level security;
--- create policy "Allow public read" on public.marketplace_listings for select using (true);
 
--- Seed your existing DCA listing (run once):
--- insert into public.marketplace_listings (group_id, name, description, price, price_type, seller)
--- values (
---   'strategy.dca.1771267923284',
---   'DCA',
---   'Dollar-cost averaging strategy. Encrypted parameters; full details after purchase.',
---   '0.01',
---   'one-time',
---   'kasanova.nova-sdk.near'
--- )
--- on conflict (group_id) do nothing;
+-- Run in Supabase SQL Editor to add IPFS CID to listings (for retrieve / display).
+
+alter table public.marketplace_listings
+  add column if not exists cid text;
+
+comment on column public.marketplace_listings.cid is 'IPFS CID of the encrypted strategy file from NOVA upload.';
+
+
+
+-- One purchase per user per strategy. Run in Supabase SQL Editor.
+
+create table if not exists public.purchases (
+  id uuid primary key default gen_random_uuid(),
+  buyer_account_id text not null,
+  group_id text not null,
+  purchased_at timestamptz default now(),
+  unique(buyer_account_id, group_id)
+);
+
+comment on table public.purchases is 'One row per user per strategy purchase; enforces one-time purchase per user.';
+
+create index if not exists idx_purchases_buyer on public.purchases(buyer_account_id);

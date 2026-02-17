@@ -38,7 +38,7 @@ export async function recordPurchase(
   const { error } = await supabase.from("purchases").insert({
     buyer_account_id: buyerAccountId,
     group_id: groupId,
-  } as Record<string, unknown>);
+  });
 
   if (error) {
     console.error("recordPurchase error:", error);

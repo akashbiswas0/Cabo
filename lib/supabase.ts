@@ -12,6 +12,14 @@ export type MarketplaceListingRow = {
   price_type: "one-time" | "subscription";
   seller: string;
   created_at: string;
+  cid: string | null;
+};
+
+export type PurchaseRow = {
+  id: string;
+  buyer_account_id: string;
+  group_id: string;
+  purchased_at: string;
 };
 
 export type Database = {
@@ -24,8 +32,22 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Omit<MarketplaceListingRow, "id">>;
+        Relationships: [];
+      };
+      purchases: {
+        Row: PurchaseRow;
+        Insert: {
+          buyer_account_id: string;
+          group_id: string;
+          id?: string;
+          purchased_at?: string;
+        };
+        Update: Partial<Omit<PurchaseRow, "id">>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 };
 
