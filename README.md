@@ -1,6 +1,6 @@
 # Cabo
 
-**Cabo** is an encrypted trading strategy marketplace on NEAR. Creators list and sell private strategies; buyers get access via NOVA groups and can pay with a NEAR wallet or with card (PingPay). An agent can execute encrypted strategies on your behalf. Built on Near
+**Cabo** is a privacy-first trading dashboard with a marketplace for encrypted strategies. Through NOVA, buyers access and execute these strategies autonomously using Shade Agent. They can fund wallets or purchase strategies with fiat via Pingpay.
 
 ---
 
