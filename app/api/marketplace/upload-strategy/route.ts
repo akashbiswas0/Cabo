@@ -117,7 +117,16 @@ export async function POST(request: NextRequest) {
         listerAccountId,
       });
     } catch (e) {
-      console.warn("Could not persist listing metadata:", e);
+      console.error("Could not persist listing metadata:", e);
+      return NextResponse.json(
+        {
+          error: "Listing saved to NOVA but failed to save to database",
+          detail: e instanceof Error ? e.message : "appendListing failed",
+          groupId,
+          recoverHint: "Use POST /api/marketplace/recover-listing with this groupId, name, and price to add it to Discover.",
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
