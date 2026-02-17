@@ -67,12 +67,26 @@ const Navbar: React.FC = () => {
         {/* Right: dashboard (when connected) + wallet menu */}
         <div className="flex items-center gap-2">
           {signedAccountId && (
-            <Link
-              href="/dashboard"
-              className="px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className="px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/marketplace"
+                className="px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
+              >
+                Marketplace
+              </Link>
+              <Link
+                href="/trade"
+                className="px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-300"
+              >
+                Trade Routes
+              </Link>
+            </>
           )}
 
           <div ref={walletMenuRef} className="relative">
