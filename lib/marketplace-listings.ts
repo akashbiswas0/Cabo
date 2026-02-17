@@ -10,18 +10,29 @@ export type StoredListing = {
   createdAt: string;
   /** IPFS CID from NOVA upload (for retrieve / display). */
   cid?: string;
+  /** NEAR account of the user who created the listing (for "My Listings"). */
+  listerAccountId?: string;
 };
 
-/** If seller is provided, only return listings by that seller (e.g. "my listings"). */
-export async function readListings(seller?: string): Promise<StoredListing[]> {
+type ReadListingsOptions = {
+  /** Filter by NOVA/seller account (legacy). */
+  seller?: string;
+  /** Filter by lister (owner) NEAR account — use for "My Listings". */
+  listerAccountId?: string;
+};
+
+/** Listings for Discover (no filter) or My Listings (listerAccountId). */
+export async function readListings(options?: ReadListingsOptions): Promise<StoredListing[]> {
   if (!isSupabaseConfigured()) return [];
+  const { seller, listerAccountId } = options ?? {};
   try {
     const supabase = getSupabase();
     let q = supabase
       .from("marketplace_listings")
-      .select("group_id, name, description, price, price_type, seller, created_at, cid")
+      .select("group_id, name, description, price, price_type, seller, created_at, cid, lister_account_id")
       .order("created_at", { ascending: false });
     if (seller) q = q.eq("seller", seller);
+    if (listerAccountId != null && listerAccountId !== "") q = q.eq("lister_account_id", listerAccountId);
     const { data, error } = await q;
 
     if (error) {
@@ -38,6 +49,7 @@ export async function readListings(seller?: string): Promise<StoredListing[]> {
       seller: string;
       created_at: string;
       cid: string | null;
+      lister_account_id: string | null;
     }>;
     return rows.map((row) => ({
       groupId: row.group_id,
@@ -48,6 +60,7 @@ export async function readListings(seller?: string): Promise<StoredListing[]> {
       seller: row.seller,
       createdAt: row.created_at,
       cid: row.cid ?? undefined,
+      listerAccountId: row.lister_account_id ?? undefined,
     }));
   } catch (e) {
     console.error("readListings:", e);
@@ -62,7 +75,7 @@ export async function getListingByGroupId(groupId: string): Promise<StoredListin
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from("marketplace_listings")
-      .select("group_id, name, description, price, price_type, seller, created_at, cid")
+      .select("group_id, name, description, price, price_type, seller, created_at, cid, lister_account_id")
       .eq("group_id", groupId)
       .maybeSingle();
 
@@ -76,6 +89,7 @@ export async function getListingByGroupId(groupId: string): Promise<StoredListin
       seller: string;
       created_at: string;
       cid: string | null;
+      lister_account_id: string | null;
     };
     return {
       groupId: row.group_id,
@@ -86,6 +100,7 @@ export async function getListingByGroupId(groupId: string): Promise<StoredListin
       seller: row.seller,
       createdAt: row.created_at,
       cid: row.cid ?? undefined,
+      listerAccountId: row.lister_account_id ?? undefined,
     };
   } catch (e) {
     console.error("getListingByGroupId:", e);
@@ -111,6 +126,7 @@ export async function appendListing(entry: StoredListing): Promise<void> {
         price_type: entry.priceType,
         seller: entry.seller,
         ...(entry.cid != null && entry.cid !== "" ? { cid: entry.cid } : {}),
+        ...(entry.listerAccountId != null && entry.listerAccountId !== "" ? { lister_account_id: entry.listerAccountId } : {}),
       } as any);
 
     if (error) {
