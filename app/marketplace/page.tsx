@@ -1,7 +1,8 @@
 "use client";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import { useNearWallet } from "near-connect-hooks";
+import { PingpayOnramp, PingpayOnrampError } from "@pingpay/onramp-sdk";
 import {
   TrustPrivacyBanner,
   MarketplaceTabs,
@@ -113,6 +114,23 @@ export default function MarketplacePage() {
         ? myListingsLoading
         : purchasesLoading;
 
+  const handleBuyCrypto = useCallback(async () => {
+    try {
+      const onrampOptions: { popupUrl?: string } = {};
+      if (typeof process.env.NEXT_PUBLIC_PINGPAY_POPUP_URL === "string") {
+        onrampOptions.popupUrl = process.env.NEXT_PUBLIC_PINGPAY_POPUP_URL;
+      }
+      const onramp = new PingpayOnramp(onrampOptions);
+      await onramp.initiateOnramp({ chain: "NEAR", asset: "wNEAR" });
+    } catch (error) {
+      if (error instanceof PingpayOnrampError) {
+        console.error("PingPay onramp failed:", error.message);
+      } else {
+        console.error("PingPay onramp error:", error);
+      }
+    }
+  }, []);
+
   const strategies = useMemo(
     () => getStrategiesForTab(activeTab),
     [activeTab, apiListings, myListings, apiPurchases]
@@ -151,6 +169,11 @@ export default function MarketplacePage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onListNew={() => setShowUploadModal(true)}
+          trailingButton={
+            activeTab === "discover"
+              ? { label: "Buy crypto", onClick: handleBuyCrypto }
+              : undefined
+          }
         />
 
         {activeTab === "discover" && (

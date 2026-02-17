@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Wallet } from "lucide-react";
 import type { TabId } from "./types";
 
 const TABS: { id: TabId; label: string }[] = [
@@ -11,9 +11,16 @@ type Props = {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   onListNew: () => void;
+  /** When set, rendered beside "List New Strategy" (e.g. Buy crypto on Discover). */
+  trailingButton?: { label: string; onClick: () => void };
 };
 
-export default function MarketplaceTabs({ activeTab, onTabChange, onListNew }: Props) {
+export default function MarketplaceTabs({
+  activeTab,
+  onTabChange,
+  onListNew,
+  trailingButton,
+}: Props) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
       <div className="flex gap-1 border-b border-white/10">
@@ -31,13 +38,25 @@ export default function MarketplaceTabs({ activeTab, onTabChange, onListNew }: P
           </button>
         ))}
       </div>
-      <button
-        onClick={onListNew}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors w-fit"
-      >
-        <Plus className="w-4 h-4 flex-shrink-0" aria-hidden />
-        List New Strategy
-      </button>
+      <div className="flex flex-wrap items-center gap-2 w-fit">
+        {trailingButton && (
+          <button
+            type="button"
+            onClick={trailingButton.onClick}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors"
+          >
+            <Wallet className="w-4 h-4 flex-shrink-0" aria-hidden />
+            {trailingButton.label}
+          </button>
+        )}
+        <button
+          onClick={onListNew}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors"
+        >
+          <Plus className="w-4 h-4 flex-shrink-0" aria-hidden />
+          List New Strategy
+        </button>
+      </div>
     </div>
   );
 }

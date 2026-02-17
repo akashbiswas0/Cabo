@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@defuse-protocol/one-click-sdk-typescript": "^0.1.16",
+    "@pingpay/onramp-sdk": "^0.1.4",
+    "@pingpay/onramp-types": "^0.0.3",
     "@supabase/supabase-js": "^2.95.3",
     "lucide-react": "^0.564.0",
     "near-connect-hooks": "^1.0.3",
